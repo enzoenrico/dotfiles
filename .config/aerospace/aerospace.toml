@@ -1,0 +1,298 @@
+# AEROSPACE CONFIG
+start-at-login = true
+
+after-login-command = []
+
+after-startup-command = [
+     "exec-and-forget ~/.config/borders/bordersrc"
+]
+
+exec-on-workspace-change = [
+  '/bin/bash',
+  '-c',
+  'sketchybar --trigger aerospace_workspace_changed FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
+]
+
+on-focused-monitor-changed = [
+  'move-mouse monitor-lazy-center'
+]
+
+on-focus-changed = [
+  'move-mouse window-lazy-center',
+  'exec-and-forget /bin/bash -c /opt/homebrew/bin/sketchybar --trigger front_app_switched',
+  'exec-and-forget sketchybar --trigger update_windows'
+]
+
+enable-normalization-flatten-containers = false
+enable-normalization-opposite-orientation-for-nested-containers = false
+
+accordion-padding = 30
+
+default-root-container-layout = 'tiles'
+
+default-root-container-orientation = 'auto'
+
+key-mapping.preset = 'qwerty'
+
+[gaps]
+#outer.bottom numbers have to match presentation.sh variables. built-in retina display is excluded from presentation mode, so this only works on external monitors.
+outer.bottom =     10
+outer.top =        10
+outer.left =       10
+outer.right =      10
+inner.horizontal = 10
+inner.vertical =   10
+
+[exec]                   # Again, you don't need to copy all config sections to your config.
+inherit-env-vars = true  # If you don't touch "exec" section,
+[exec.env-vars]          # it will fallback to "default-config.toml"
+PATH = '/opt/homebrew/bin:/opt/homebrew/sbin:${PATH}'
+
+[mode.main.binding]
+
+f18 = 'mode movement'
+
+alt-r = [
+  'mode resize',
+  'exec-and-forget sketchybar --trigger send_message MESSAGE="RESIZE MODE" HOLD="true"'
+]
+
+
+ctrl-g = 'mode join'
+ctrl-q = [
+  'close --quit-if-last-window'
+]
+
+# open the terminal
+#ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Kitty.app'
+
+# ctrl-shift-f = 'macos-native-fullscreen'
+# ctrl-f = 'fullscreen'
+
+alt-g = 'split horizontal'
+alt-v = 'split vertical'
+
+
+
+cmd-tab = 'workspace-back-and-forth'
+
+alt-p = 'move-workspace-to-monitor --wrap-around next'
+alt-shift-p = [
+  'move-node-to-monitor --wrap-around next',
+  'focus-monitor next --wrap-around' 
+]
+
+ctrl-alt-shift-s = [
+  'mode service',
+  #'exec-and-forget sketchybar --trigger send_message MESSAGE="SERVICE MODE" HOLD="true"'
+]
+
+[mode.movement.binding]
+h = 'focus --boundaries all-monitors-outer-frame --boundaries-action stop left'
+j = 'focus --boundaries all-monitors-outer-frame --boundaries-action stop down'
+k = 'focus --boundaries all-monitors-outer-frame --boundaries-action stop up'
+l = 'focus --boundaries all-monitors-outer-frame --boundaries-action stop right'
+
+shift-h = 'move left'
+shift-j = 'move down'
+shift-k = 'move up'
+shift-l = 'move right'
+shift-left = 'move left'
+shift-down = 'move down'
+shift-up = 'move up'
+shift-right = 'move right'
+
+f18 = 'mode main'
+
+#ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Ghostty.app'
+ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Kitty.app'
+
+
+space = 'layout floating tiling'
+f = 'fullscreen'
+shift-f = 'macos-native-fullscreen'
+
+r = 'mode resize'
+
+#center the screen
+#c = 'exec-and-forget open -g raycast://extensions/raycast/window-management/center '
+
+#almost maximize
+#ctrl-c = 'exec-and-forget open -g raycast://extensions/raycast/window-management/almost-maximize'
+c = 'exec-and-forget open -g raycast://extensions/raycast/window-management/almost-maximize'
+
+esc = 'mode main'
+enter = 'mode main'
+
+shift-p = [
+  'move-node-to-monitor --wrap-around next',
+  'focus-monitor next --wrap-around' 
+]
+
+alt-p = 'move-workspace-to-monitor --wrap-around next'
+
+ctrl-p = [
+  'move-node-to-monitor --wrap-around next',
+  'focus-monitor next --wrap-around' ,
+' focus --boundaries all-monitors-outer-frame --boundaries-action stop left ',
+  'move-node-to-monitor --wrap-around next'
+]
+
+1 = 'workspace --auto-back-and-forth 􁹩'  # Notes
+2 = 'workspace --auto-back-and-forth 􀎭'  # Browser
+3 = 'workspace --auto-back-and-forth 􂨜'  
+4 = 'workspace --auto-back-and-forth 4'  # AltBrowser
+5 = 'workspace --auto-back-and-forth 5'  # Remote
+6 = 'workspace --auto-back-and-forth 6'  # Database
+7 = 'workspace --auto-back-and-forth 7'  # Chat
+8 = 'workspace --auto-back-and-forth 8'  # Mail
+9 = 'workspace --auto-back-and-forth 􀺹'  # Music
+0 = 'workspace --auto-back-and-forth 􀲏' # Secrets
+t = 'workspace --auto-back-and-forth 􀪏'  # Terminal
+s = 'workspace --auto-back-and-forth 􂝉'  # Steam and games
+
+shift-1 = 'move-node-to-workspace 􁹩' # Notes
+shift-2 = 'move-node-to-workspace 􀎭' # Browser
+shift-3 = 'move-node-to-workspace 􂨜' 
+shift-4 = 'move-node-to-workspace 4' # AltBrowser
+shift-5 = 'move-node-to-workspace 5' # Remote
+shift-6 = 'move-node-to-workspace 6' # Database
+shift-7 = 'move-node-to-workspace 7' # Chat
+shift-8 = 'move-node-to-workspace 8' # Mail
+shift-9 = 'move-node-to-workspace 􀺹' # Music
+shift-0 = 'move-node-to-workspace 􀲏' # Secrets        
+shift-t = 'move-node-to-workspace 􀪏' # Terminal
+shift-s = 'move-node-to-workspace 􂝉' # Steam and games
+   
+
+
+[mode.service.binding]
+esc = [
+ 'reload-config',
+ #'exec-and-forget sketchybar --trigger hide_message',
+ #'exec-and-forget sketchybar --reload',
+ 'mode main'
+]
+r = ['flatten-workspace-tree', 'mode main'] # reset layout
+#s = ['layout sticky tiling', 'mode main'] # sticky is not yet supported https://github.com/nikitabobko/AeroSpace/issues/2
+
+b = [
+   'exec-and-forget ~/.config/aerospace/presentation.sh on',
+   #'exec-and-forget sketchybar --bar height=0',
+   #'exec-and-forget sketchybar --trigger hide_message',
+   'mode main'
+]
+
+shift-b = [
+   'exec-and-forget ~/.config/aerospace/presentation.sh off',
+   #'exec-and-forget sketchybar --bar height=36',
+   #'exec-and-forget sketchybar --trigger hide_message',
+   'mode main'
+]
+
+backspace = ['close-all-windows-but-current', 'mode main']
+
+[mode.resize.binding]
+
+m = 'resize smart -64'
+p = 'resize smart +64'
+
+h = ['resize width -64']
+j = ['resize height -64']
+k = ['resize height +64']
+l = ['resize width +64']
+
+f18 = 'mode movement'
+
+esc = [
+  'mode main',
+  #'exec-and-forget sketchybar --trigger hide_message'
+]
+
+enter = [
+  'mode main',
+  #'exrc-and-forget sketchybar --trigger hide_message'
+]
+
+ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Kitty.app'
+#ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Ghostty.app'
+
+[mode.join.binding]
+h = ['join-with left', 'mode main']
+j = ['join-with down', 'mode main']
+k = ['join-with up', 'mode main']
+l = ['join-with right', 'mode main']
+
+
+# ========================= Window Rules =========================
+
+# ========================= workspace 1 =========================
+[[on-window-detected]]
+if.app-id = 'com.microsoft.VSCode'              
+run = ['move-node-to-workspace 􁹩']  
+
+[[on-window-detected]]
+if.app-id = 'com.todesktop.230313mzl4w4u92'
+run = ['move-node-to-workspace 􁹩']  
+
+[[on-window-detected]]
+if.app-id = 'com.apple.dt.Xcode'              
+run = ['move-node-to-workspace 􁹩']  
+
+# ========================= workspace 2 =========================
+[[on-window-detected]]
+if.app-id = 'com.apple.Safari'              
+run = [ 'move-node-to-workspace 􀎭']
+
+[[on-window-detected]]
+if.app-id = 'app.zen-browser.zen'              
+run = [ 'move-node-to-workspace 􀎭']
+
+# ========================= workspace S =========================
+[[on-window-detected]]
+if.app-id = 'com.valvesoftware.steam'              
+run = ['move-node-to-workspace 􂝉']
+
+# ========================= workspace 9 =========================
+[[on-window-detected]]
+if.app-id = 'com.spotify.client'              
+run = ['move-node-to-workspace 􀺹']  
+
+# ========================= workspace 10 =========================
+[[on-window-detected]]
+if.app-id = 'com.tinyspeck.slackmacgap'
+run = [
+  'layout tiling',
+  'move-node-to-workspace 􀲏',
+]
+
+[[on-window-detected]]
+if.app-id = 'net.whatsapp.WhatsApp'
+run = [
+  'layout floating',
+  'move-node-to-workspace 􀲏',
+]
+
+[[on-window-detected]]
+if.app-id = 'com.hnc.Discord'
+run = [
+  'layout floating',
+  'move-node-to-workspace 􀲏',
+]
+
+# ========================= workspace T =========================
+[[on-window-detected]]
+if.app-id = 'com.mitchellh.ghostty'
+run = ['move-node-to-workspace 􀪏']
+
+[[on-window-detected]]
+if.app-id = 'net.kovidgoyal.kitty'
+run = ['move-node-to-workspace 􀪏']
+
+# === default floating ===
+[[on-window-detected]]
+run = [
+  'layout floating',
+]
+
+
