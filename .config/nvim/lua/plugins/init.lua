@@ -28,7 +28,13 @@ return {
       indent = { enabled = true },
       input = { enabled = true },
       notifier = { enabled = true },
-      picker = { enabled = true },
+      picker = {
+        enabled = true,
+        sources = {
+          explorer = { hidden = true },
+          files = { hidden = true },
+        },
+      },
       quickfile = { enabled = true },
       scope = { enabled = true },
       scroll = { enabled = true },
@@ -78,6 +84,10 @@ return {
           },
         },
       })
+      opts.pickers = opts.pickers or {}
+      opts.pickers.find_files = vim.tbl_deep_extend("force", opts.pickers.find_files or {}, {
+        hidden = true,
+      })
       return opts
     end,
   },
@@ -87,6 +97,9 @@ return {
     "nvim-tree/nvim-tree.lua",
     opts = function(_, opts)
       opts.view = vim.tbl_deep_extend("force", opts.view or {}, { side = "right" })
+      opts.filters = vim.tbl_deep_extend("force", opts.filters or {}, {
+        dotfiles = false,
+      })
       return opts
     end,
   },
@@ -99,9 +112,56 @@ return {
       vim.list_extend(opts.spec, {
         { "<leader>s", group = "Swift / Xcodebuild", mode = "n" },
         { "<leader>t", group = "Splits / terminal", mode = "n" },
+        { "<leader>g", group = "Git", mode = "n" },
       })
       return opts
     end,
+  },
+
+  {
+    "sindrets/diffview.nvim",
+    cond = function()
+      return not vim.g.vscode
+    end,
+    cmd = {
+      "DiffviewOpen",
+      "DiffviewClose",
+      "DiffviewToggleFiles",
+      "DiffviewFocusFiles",
+      "DiffviewRefresh",
+      "DiffviewFileHistory",
+    },
+    config = function()
+      require "configs.diffview"
+    end,
+  },
+
+  -- Git UI (libgit2); uses diffview for splits — install libgit2 on the system first.
+  {
+    "SuperBo/fugit2.nvim",
+    build = false,
+    cond = function()
+      return not vim.g.vscode
+    end,
+    dependencies = {
+      "MunifTanjim/nui.nvim",
+      "nvim-tree/nvim-web-devicons",
+      "nvim-lua/plenary.nvim",
+    },
+    cmd = {
+      "Fugit2",
+      "Fugit2Blame",
+      "Fugit2Diff",
+      "Fugit2Graph",
+      "Fugit2Rebase",
+    },
+    opts = {
+      width = 70,
+      external_diffview = true,
+    },
+    keys = {
+      { "<leader>gf", "<cmd>Fugit2<cr>", desc = "Fugit2", mode = "n" },
+    },
   },
 
   -- Smear cursor (~= Cursor Smear Cursor); standalone only
@@ -134,13 +194,6 @@ return {
     cond = mac,
     dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
   },
-
-  {
-    "MunifTanjim/nui.nvim",
-    lazy = true,
-    cond = mac,
-  },
-
 
   -- Sweetpad replacement on macOS (Xcode / SwiftPM). Loads on Swift buffers or :Xcodebuild* commands.
   {
