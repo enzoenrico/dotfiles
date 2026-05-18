@@ -1,15 +1,11 @@
-local options = {
-  formatters_by_ft = {
-    lua = { "stylua" },
-    -- css = { "prettier" },
-    -- html = { "prettier" },
-  },
-
-  -- format_on_save = {
-  --   -- These options will be passed to conform.format()
-  --   timeout_ms = 500,
-  --   lsp_fallback = true,
-  -- },
+local ft = {
+  lua = { "stylua" },
 }
 
-return options
+if vim.fn.executable "swiftformat" == 1 then
+  ft.swift = { "swiftformat" }
+end
+
+return {
+  formatters_by_ft = ft,
+}

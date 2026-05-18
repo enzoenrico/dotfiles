@@ -1,5 +1,3 @@
--- ~/.config/nvim/lua/custom/format.lua
-
 local M = {}
 
 M.format_parentheses = function()
