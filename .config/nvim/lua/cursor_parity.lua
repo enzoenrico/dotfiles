@@ -42,6 +42,37 @@ map("n", "<S-D-p>", "<cmd>Telescope commands<CR>", { desc = "Command palette (Cu
 -- Command palette (Space ;)
 map("n", "<leader>;", "<cmd>Telescope commands<CR>", { desc = "Command palette" })
 
+local function latest_cursor_plan()
+  local plans_dir = vim.fn.expand "~/.cursor/plans"
+  local files = vim.fn.globpath(plans_dir, "*.plan.md", false, true)
+  if #files == 0 then
+    return nil, "No plans in " .. plans_dir
+  end
+  table.sort(files, function(a, b)
+    return vim.fn.getftime(a) > vim.fn.getftime(b)
+  end)
+  return files[1]
+end
+
+vim.api.nvim_create_user_command("CursorPlan", function(opts)
+  local plan, err = latest_cursor_plan()
+  if not plan then
+    vim.notify(err, vim.log.levels.ERROR)
+    return
+  end
+  local cmd = opts.bang and "edit" or "split"
+  vim.cmd(("%s %s"):format(cmd, vim.fn.fnameescape(plan)))
+end, { bang = true, desc = "Open latest Cursor plan (bang: current window)" })
+
+map("n", "<leader>cp", function()
+  local plan, err = latest_cursor_plan()
+  if not plan then
+    vim.notify(err, vim.log.levels.ERROR)
+    return
+  end
+  vim.cmd("split " .. vim.fn.fnameescape(plan))
+end, { desc = "Open latest Cursor plan" })
+
 -- Close current split/window only (buffer may stay open in other windows). Use <leader>x to kill buffer (NvChad).
 map("n", "<leader>k", function()
   if #vim.api.nvim_tabpage_list_wins() == 1 then

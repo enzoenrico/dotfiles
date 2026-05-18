@@ -1,4 +1,5 @@
 require("nvchad.configs.lspconfig").defaults()
+require("configs.swift").setup()
 
 vim.lsp.enable { "html", "cssls", "sourcekit" }
 
