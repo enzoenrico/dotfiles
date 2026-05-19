@@ -34,6 +34,7 @@ if vim.g.vscode then
       vs_go("editor.action.goToDefinition", "editor.action.revealDefinition"),
       { desc = "Go to definition (Cursor / VS Code)" }
     )
+    map("n", "gi", vs_go("editor.action.goToImplementation"), { desc = "Go to implementation (Cursor / VS Code)" })
     map("n", "gD", vs_go("editor.action.goToTypeDefinition"), { desc = "Go to type definition (Cursor / VS Code)" })
     map("n", "gr", function()
       vscode.action("editor.action.rename")

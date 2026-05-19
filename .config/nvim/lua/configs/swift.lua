@@ -95,6 +95,59 @@ function M.setup_treesitter()
   })
 end
 
+function M.setup_diagnostics()
+  vim.api.nvim_create_user_command("SwiftLspDiag", function()
+    local buf = vim.api.nvim_get_current_buf()
+    local clients = vim.lsp.get_clients { bufnr = buf, name = "sourcekit" }
+    local lines = {}
+
+    if #clients == 0 then
+      vim.list_extend(lines, {
+        "sourcekit: not attached to this buffer",
+        "  → open a .swift file from the repo root (folder with buildServer.json)",
+        "  → :XcodebuildSetup then build once (<leader>sb or Xcode)",
+      })
+    else
+      local client = clients[1]
+      lines[#lines + 1] = ("sourcekit: attached (root: %s)"):format(client.root_dir or "?")
+      local bsp = (client.root_dir or "") .. "/buildServer.json"
+      lines[#lines + 1] = ("buildServer.json: %s"):format(vim.fn.filereadable(bsp) == 1 and bsp or "missing at LSP root")
+    end
+
+    local pos = vim.api.nvim_win_get_cursor(0)
+    local params = vim.lsp.util.make_position_params(0, "utf-16")
+    local impl = vim.lsp.buf_request_sync(buf, "textDocument/implementation", params, 5000)
+    local refs = vim.lsp.buf_request_sync(
+      buf,
+      "textDocument/references",
+      vim.tbl_extend("force", params, { context = { includeDeclaration = false } }),
+      5000
+    )
+
+    local function count_result(result)
+      if not result then
+        return 0
+      end
+      return vim.islist(result) and #result or 1
+    end
+    local impl_n = count_result(impl and impl.result)
+    local refs_n = count_result(refs and refs.result)
+    lines[#lines + 1] = ("at cursor L%d: implementations=%s, references=%s"):format(
+      pos[1],
+      impl_n,
+      refs_n
+    )
+    lines[#lines + 1] = "gi only applies to protocols / protocol requirements (not plain types or methods)."
+    if impl_n == 0 and refs_n > 0 then
+      lines[#lines + 1] = "  → index OK; try <D-]> (references) or put cursor on the protocol name."
+    elseif impl_n == 0 and refs_n == 0 then
+      lines[#lines + 1] = "  → likely index/project: rebuild scheme, refresh buildServer.json, <leader>sR"
+    end
+
+    vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "Swift LSP" })
+  end, { desc = "Diagnose SourceKit root + gi/refs at cursor" })
+end
+
 function M.setup_keymaps()
   vim.api.nvim_create_autocmd("FileType", {
     group = aug,
@@ -118,6 +171,7 @@ end
 function M.setup()
   M.setup_lsp()
   M.setup_treesitter()
+  M.setup_diagnostics()
   M.setup_keymaps()
 end
 

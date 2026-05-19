@@ -19,16 +19,20 @@ plugins=(
 ZSH_THEME="robbyrussell"
 
 source $ZSH/oh-my-zsh.sh
-source $ZSH/oh-my-zsh.sh
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /Users/enzoenrico/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+export PATH="$HOME/.local/bin:$PATH"
+
+if [[ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+  source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+elif [[ -f "$ZSH/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+  source "$ZSH/custom/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi
 
 alias sail="./vendor/bin/sail"
 alias ff='nvim $(fzf --preview="bat --color=always {}")'
 alias venv="python3 -m venv .venv && source ./.venv/bin/activate"
+alias lg="lazygit"
 
-alias academy="cd ~/code/academy"
-alias speech='cd ~/code/academy/speech-trainer && code ~/code/academy/speech-trainer'
 
 
 export NVM_DIR="$HOME/.nvm"
@@ -37,31 +41,35 @@ export NVM_DIR="$HOME/.nvm"
 
 autoload -Uz compinit
 
-export PATH=$HOME/code/flutter/bin:$PATH
+[[ -d "$HOME/code/flutter/bin" ]] && export PATH="$HOME/code/flutter/bin:$PATH"
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/enzoenrico/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
+if [[ -x "$HOME/miniconda3/bin/conda" ]]; then
+  __conda_setup="$("$HOME/miniconda3/bin/conda" shell.zsh hook 2> /dev/null)"
+  if [ $? -eq 0 ]; then
     eval "$__conda_setup"
-else
-    if [ -f "/Users/enzoenrico/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "/Users/enzoenrico/miniconda3/etc/profile.d/conda.sh"
+  else
+    if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+      . "$HOME/miniconda3/etc/profile.d/conda.sh"
     else
-        export PATH="/Users/enzoenrico/miniconda3/bin:$PATH"
+      export PATH="$HOME/miniconda3/bin:$PATH"
     fi
+  fi
+  unset __conda_setup
 fi
-unset __conda_setup
 # <<< conda initialize <<<
 
-export JAVA_HOME=$(/usr/libexec/java_home)
+if JAVA_HOME="$(/usr/libexec/java_home 2>/dev/null)"; then
+  export JAVA_HOME
+fi
 
 # Claude Code / OpenRouter (secrets in ~/.secrets.zsh, not git)
 # Load local secrets: cp dotfiles/.secrets.zsh.example ~/.secrets.zsh
 [[ -f ~/.secrets.zsh ]] && source ~/.secrets.zsh
 
 # pnpm
-export PNPM_HOME="/Users/enzoenrico/Library/pnpm"
+export PNPM_HOME="$HOME/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
@@ -72,7 +80,6 @@ source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
 
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-export PATH="$HOME/.local/bin:$PATH"
 
 _anifetch_pane_marker() {
   [[ -n "${TMUX:-}" && -n "${TMUX_PANE:-}" ]] || return 1
@@ -81,7 +88,7 @@ _anifetch_pane_marker() {
 
 _run_startup_fetch() {
   [[ -t 1 ]] || return
-  [[ -n "${CURSOR_AGENT:-}" ]] && return
+  [[ -n "${ANIFETCH_SKIP:-}" ]] && return
   command -v anifetch >/dev/null || return
 
   local cols lines w h
@@ -159,11 +166,11 @@ if _zsh_autostarts_tmux; then
 fi
 
 # bun completions
-[ -s "/Users/enzoenrico/.bun/_bun" ] && source "/Users/enzoenrico/.bun/_bun"
+[[ -s "$HOME/.bun/_bun" ]] && source "$HOME/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 # opencode
-export PATH=/Users/enzoenrico/.opencode/bin:$PATH
+[[ -d "$HOME/.opencode/bin" ]] && export PATH="$HOME/.opencode/bin:$PATH"

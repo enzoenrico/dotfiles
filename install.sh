@@ -26,9 +26,15 @@ rsync -av "${RSYNC_EXCLUDES[@]}" \
 
 cp "$DOTFILES/.zshrc" "$HOME/.zshrc"
 cp "$DOTFILES/.tmux.conf" "$HOME/.tmux.conf"
+cp "$DOTFILES/.gitconfig" "$HOME/.gitconfig"
+cp "$DOTFILES/.gitignore_global" "$HOME/.gitignore_global"
 
 if [[ ! -f "$HOME/.secrets.zsh" ]]; then
   echo "Tip: cp $DOTFILES/.secrets.zsh.example ~/.secrets.zsh and add your API keys"
+fi
+
+if ! command -v anifetch >/dev/null 2>&1; then
+  echo "Tip: anifetch startup needs: brew install chafa ffmpeg && uv tool install anifetch-cli"
 fi
 
 echo "Installed dotfiles from $DOTFILES"

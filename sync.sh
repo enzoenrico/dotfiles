@@ -25,8 +25,11 @@ rsync -av --delete "${RSYNC_EXCLUDES[@]}" \
 
 cp "$HOME/.zshrc" "$DOTFILES/.zshrc"
 cp "$HOME/.tmux.conf" "$DOTFILES/.tmux.conf"
+cp "$HOME/.gitconfig" "$DOTFILES/.gitconfig"
+cp "$HOME/.gitignore_global" "$DOTFILES/.gitignore_global"
 
-# Sanitize secrets in repo copy of .zshrc
+# Sanitize secrets and stale machine paths in repo copies
 "$DOTFILES/scripts/sanitize-zshrc.sh" "$DOTFILES/.zshrc"
+"$DOTFILES/scripts/sanitize-zshrc.sh" "$DOTFILES/.gitconfig"
 
 echo "Synced live configs into $DOTFILES"

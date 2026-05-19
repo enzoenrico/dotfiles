@@ -90,6 +90,10 @@ map("n", "gr", function()
   require("custom.lsp_renamer")()
 end, { desc = "Rename (Cursor gr)" })
 
+map("n", "gi", function()
+  require("telescope.builtin").lsp_implementations()
+end, { desc = "LSP implementations (Telescope)" })
+
 map("n", "<D-]>", function()
   require("telescope.builtin").lsp_references()
 end, { desc = "LSP references (Cursor Cmd+])" })

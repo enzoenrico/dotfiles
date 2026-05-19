@@ -1,6 +1,12 @@
 .DS_Store
 **/.DS_Store
 
+# Accidental terminal captures / local junk
+typescript
+
+# iTerm2: symlinks into ~/Library and runtime sockets (not portable)
+.config/iterm2/
+
 # Tool-generated / bulky
 .config/raycast/
 .config/opencode/
@@ -9,6 +15,7 @@
 .config/karabiner/automatic_backups/
 .config/.aider.*
 .config/configstore/
+.config/uv/
 .config/nvim/.git/
 .config/nvim/.cursor/
 .config/nvim/.tmp.*

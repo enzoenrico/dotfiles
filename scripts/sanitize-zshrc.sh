@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
-# Replace inline API secrets in .zshrc with a source to ~/.secrets.zsh
+# Replace inline API secrets and stale home paths in tracked shell/git configs.
 set -euo pipefail
 
 TARGET="${1:-}"
 
 if [[ -z "$TARGET" || ! -f "$TARGET" ]]; then
-  echo "Usage: $0 <path-to-.zshrc>" >&2
+  echo "Usage: $0 <path-to-config-file>" >&2
   exit 1
 fi
 
 python3 - "$TARGET" <<'PY'
 import re
 import sys
+from pathlib import Path
 
 path = sys.argv[1]
 text = open(path).read()
+
+# Old machine username from a prior laptop sync
+text = text.replace("/Users/enzoenrico/", str(Path.home()) + "/")
+text = re.sub(
+    r"excludesfile = /Users/[^/\s]+/\.gitignore_global",
+    "excludesfile = ~/.gitignore_global",
+    text,
+)
 
 block = """# Claude Code / OpenRouter (secrets in ~/.secrets.zsh, not git)
 # Load local secrets: cp dotfiles/.secrets.zsh.example ~/.secrets.zsh

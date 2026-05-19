@@ -20,6 +20,9 @@ config.term = "wezterm"
 config.enable_kitty_keyboard = true
 config.enable_csi_u_key_encoding = false
 
+-- Cmd+click opens links inside tmux (mouse on). Default bypass is Shift only.
+config.bypass_mouse_reporting_modifiers = "SUPER|SHIFT"
+
 -- Chain: clear WezTerm default (e.g. hide on Cmd+h), then inject the chord for the pane.
 local function send_modified_key(key, mods)
 	return act.Chain({
@@ -45,5 +48,18 @@ table.insert(keys, { key = "p", mods = "SUPER", action = send_modified_key("p", 
 table.insert(keys, { key = "p", mods = "SUPER|SHIFT", action = send_modified_key("p", "SUPER|SHIFT") })
 
 config.keys = keys
+
+config.mouse_bindings = {
+	{
+		event = { Up = { streak = 1, button = "Left" } },
+		mods = "SUPER",
+		action = act.OpenLinkAtMouseCursor,
+	},
+	{
+		event = { Down = { streak = 1, button = "Left" } },
+		mods = "SUPER",
+		action = act.Nop,
+	},
+}
 
 return config

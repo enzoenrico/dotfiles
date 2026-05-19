@@ -1,6 +1,6 @@
 [user]
-	email = e.enrico2005@gmail.com
-	name = enzo
+	email = enzo.enrico@mitel.com
+	name = Enzo Enrico Boteon Chiuratto
 [credential]
 	helper = 
 	helper = /usr/local/share/gcm-core/git-credential-manager
@@ -18,7 +18,7 @@
 [mergetool "vscode"]
 	cmd = "code --wait "
 [core]
-	excludesfile = /Users/enzoenrico/.gitignore_global
+	excludesfile = ~/.gitignore_global
 [credential "https://huggingface.co"]
 	provider = generic
 [push]
