@@ -218,9 +218,10 @@ return {
       "XcodebuildTest",
     },
     config = function()
-      require("dapui").setup()
-      require("xcodebuild").setup {}
-      require("xcodebuild.integrations.dap").setup()
+      local xb = require "configs.xcodebuild"
+      xb.setup_dap_ui()
+      xb.setup_xcodebuild()
+      xb.setup_autocmds()
     end,
   },
   {

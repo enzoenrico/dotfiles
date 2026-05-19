@@ -110,68 +110,48 @@ end
 map("n", "<M-F>", format_doc, { desc = "Format document (Shift+Opt+F slot)" })
 map("n", "<M-S-f>", format_doc, { desc = "Format document (Shift+Opt+f)" })
 
--- Swift / xcodebuild (macOS): <leader>s* — only when plugin loads
+-- Swift / xcodebuild (macOS): <leader>s* — lazy-loads with xcodebuild.nvim
 if vim.fn.has "macunix" == 1 then
-  map("n", "<leader>sb", function()
-    local ok, a = pcall(require, "xcodebuild.actions")
-    if ok then
-      a.build()
-    else
-      vim.notify("xcodebuild.nvim not loaded — open a Swift file or :XcodebuildPicker", vim.log.levels.WARN)
-    end
-  end, { desc = "Xcodebuild: build" })
+  local xb_unloaded = "xcodebuild.nvim not loaded — open a Swift file or :XcodebuildPicker"
 
-  map("n", "<leader>sr", function()
-    local ok, a = pcall(require, "xcodebuild.actions")
-    if ok then
-      a.build_and_run()
-    else
-      vim.notify("xcodebuild.nvim not loaded", vim.log.levels.WARN)
+  local function with_actions(fn, msg)
+    return function()
+      local ok, actions = pcall(require, "xcodebuild.actions")
+      if ok then
+        fn(actions)
+      else
+        vim.notify(msg or xb_unloaded, vim.log.levels.WARN)
+      end
     end
-  end, { desc = "Xcodebuild: build & run" })
+  end
 
-  map("n", "<leader>st", function()
-    local ok, a = pcall(require, "xcodebuild.actions")
-    if ok then
-      a.run_tests()
-    else
-      vim.notify("xcodebuild.nvim not loaded", vim.log.levels.WARN)
+  local function with_xb(fn, msg)
+    return function()
+      local ok, xb = pcall(require, "configs.xcodebuild")
+      if ok then
+        fn(xb)
+      else
+        vim.notify(msg or xb_unloaded, vim.log.levels.WARN)
+      end
     end
-  end, { desc = "Xcodebuild: test" })
+  end
 
-  map("n", "<leader>sl", function()
-    local ok, a = pcall(require, "xcodebuild.actions")
-    if ok then
-      a.clean_build()
-    else
-      vim.notify("xcodebuild.nvim not loaded", vim.log.levels.WARN)
-    end
-  end, { desc = "Xcodebuild: clean build" })
-
-  map("n", "<leader>sd", function()
-    local ok, a = pcall(require, "xcodebuild.actions")
-    if ok then
-      a.select_device()
-    else
-      vim.notify("xcodebuild.nvim not loaded", vim.log.levels.WARN)
-    end
-  end, { desc = "Xcodebuild: select device" })
-
+  map("n", "<leader>sb", with_actions(function(a) a.build() end), { desc = "Xcodebuild: build" })
+  map("n", "<leader>sr", with_actions(function(a) a.build_and_run() end), { desc = "Xcodebuild: build & run" })
+  map("n", "<leader>st", with_actions(function(a) a.run_tests() end), { desc = "Xcodebuild: test" })
+  map("n", "<leader>sl", with_actions(function(a) a.clean_build() end), { desc = "Xcodebuild: clean build" })
+  map("n", "<leader>sd", with_actions(function(a) a.select_device() end), { desc = "Xcodebuild: select device" })
   map("n", "<leader>sp", function()
-    local ok, a = pcall(require, "xcodebuild.actions")
+    local ok, actions = pcall(require, "xcodebuild.actions")
     if ok then
-      a.show_picker()
+      actions.show_picker()
     else
       vim.cmd "XcodebuildPicker"
     end
   end, { desc = "Xcodebuild: action picker" })
-
-  map("n", "<leader>sg", function()
-    local ok, dap = pcall(require, "xcodebuild.integrations.dap")
-    if ok then
-      dap.build_and_debug()
-    else
-      vim.notify("xcodebuild DAP not loaded", vim.log.levels.WARN)
-    end
-  end, { desc = "Xcodebuild: build & debug" })
+  map("n", "<leader>sg", with_xb(function(xb) xb.build_and_debug() end, "xcodebuild DAP not loaded"), {
+    desc = "Xcodebuild: build & debug",
+  })
+  map("n", "<leader>sc", with_xb(function(xb) xb.focus_console() end), { desc = "Xcodebuild: focus app console" })
+  map("n", "<leader>sx", with_xb(function(xb) xb.close_debug_ui() end), { desc = "Xcodebuild: stop debugger & close DAP UI" })
 end
