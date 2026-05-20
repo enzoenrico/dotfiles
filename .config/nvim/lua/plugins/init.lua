@@ -59,6 +59,10 @@ return {
         "html", "css", "swift",
       },
     },
+    config = function(_, opts)
+      require("nvim-treesitter.configs").setup(opts)
+      require("configs.treesitter_nvim012").patch()
+    end,
   },
   {
     "vscode-neovim/vscode-multi-cursor.nvim",
@@ -235,6 +239,12 @@ return {
     "mbbill/undotree",
     cmd = "UndotreeToggle",
   },
-
+  {
+    "wintermute-cell/gitignore.nvim",
+      lazy=true,
+      config = function()
+          require('gitignore')
+      end,
+  },
   { import = "plugins.disabled" },
 }

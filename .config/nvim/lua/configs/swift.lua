@@ -137,7 +137,7 @@ function M.setup_diagnostics()
       impl_n,
       refs_n
     )
-    lines[#lines + 1] = "gi only applies to protocols / protocol requirements (not plain types or methods)."
+    lines[#lines + 1] = "gi: LSP implementations + definitions, Treesitter, and project grep (not only protocols)."
     if impl_n == 0 and refs_n > 0 then
       lines[#lines + 1] = "  → index OK; try <D-]> (references) or put cursor on the protocol name."
     elseif impl_n == 0 and refs_n == 0 then

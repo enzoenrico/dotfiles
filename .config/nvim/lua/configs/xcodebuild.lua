@@ -1,5 +1,8 @@
---- Xcodebuild.nvim + nvim-dap-ui: live app logs in the DAP Console.
+--- Xcodebuild.nvim + nvim-dap-ui: live app logs in the DAP Console (debug only).
 local M = {}
+
+--- Set by build_and_debug before launch; cleared after auto-focusing console.
+local awaiting_debug_console = false
 
 local function ensure_dap_ui()
   require("dapui").open()
@@ -66,6 +69,7 @@ end
 M.focus_console = focus_console
 
 function M.build_and_debug()
+  awaiting_debug_console = true
   require("xcodebuild.integrations.dap").build_and_debug()
 end
 
@@ -86,11 +90,36 @@ function M.close_debug_ui()
 end
 
 function M.setup_autocmds()
+  local group = vim.api.nvim_create_augroup("XcodebuildLiveLogs", { clear = true })
+
   vim.api.nvim_create_autocmd("User", {
-    group = vim.api.nvim_create_augroup("XcodebuildLiveLogs", { clear = true }),
+    group = group,
     pattern = "XcodebuildApplicationLaunched",
     callback = function()
+      if not awaiting_debug_console then
+        return
+      end
+      awaiting_debug_console = false
       vim.schedule(focus_console)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("User", {
+    group = group,
+    pattern = "XcodebuildBuildFinished",
+    callback = function(ev)
+      local data = ev.data or {}
+      if not data.success or data.cancelled then
+        awaiting_debug_console = false
+      end
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("User", {
+    group = group,
+    pattern = "XcodebuildActionCancelled",
+    callback = function()
+      awaiting_debug_console = false
     end,
   })
 end

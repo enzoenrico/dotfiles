@@ -8,13 +8,17 @@ Personal macOS config mirrored from `~/.config` and shell dotfiles.
 # New machine: install repo configs into home
 ./install.sh
 
-# After editing live configs: pull changes into the repo
+# After editing live ~/.config (or shell dotfiles): mirror into this repo
 ./sync.sh
+git add -A && git commit -m "Sync configs from live home"
 
 # API keys (not in git)
 cp .secrets.zsh.example ~/.secrets.zsh
 # Edit ~/.secrets.zsh with real values
 ```
+
+`sync.sh` rsyncs applicable dirs from `~/.config/` into `.config/` (see excludes in the script).
+`install.sh` pushes the repo copy back to `~/.config/` on a new machine.
 
 ## What is tracked
 

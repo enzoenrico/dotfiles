@@ -81,17 +81,39 @@ source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-_anifetch_pane_marker() {
-  [[ -n "${TMUX:-}" && -n "${TMUX_PANE:-}" ]] || return 1
-  print -r "${XDG_CACHE_HOME:-$HOME/.cache}/anifetch/pane-${TMUX_PANE//\//_}"
+_anifetch_tmux_session_key() {
+  [[ -n "${TMUX:-}" ]] || return 1
+  # TMUX=/path/to/socket,server_pid,session_index — session_index is per-session
+  local rest="${TMUX#*,}"
+  print -r "${rest#*,}"
+}
+
+_anifetch_session_marker() {
+  [[ -n "${TMUX:-}" ]] || return 1
+  local key
+  key=$(_anifetch_tmux_session_key) || return 1
+  print -r "${XDG_CACHE_HOME:-$HOME/.cache}/anifetch/session-${key}"
+}
+
+# fd 1 is often not a TTY inside tmux (and some terminal emulators); use pane TTY.
+_anifetch_output_tty() {
+  [[ -t 1 ]] && { print -r /dev/fd/1; return 0 }
+  [[ -n "${TTY:-}" && -w "${TTY}" ]] && { print -r "$TTY"; return 0 }
+  if [[ -n "${TMUX:-}" && -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null; then
+    local ptty
+    ptty=$(tmux display -p -t "${TMUX_PANE}" '#{pane_tty}' 2>/dev/null)
+    [[ -n "$ptty" && -w "$ptty" ]] && { print -r "$ptty"; return 0 }
+  fi
+  return 1
 }
 
 _run_startup_fetch() {
-  [[ -t 1 ]] || return
-  [[ -n "${ANIFETCH_SKIP:-}" ]] && return
-  command -v anifetch >/dev/null || return
+  [[ -n "${ANIFETCH_SKIP:-}" ]] && return 1
+  command -v anifetch >/dev/null || return 1
 
-  local cols lines w h
+  local otty cols lines w h
+  otty=$(_anifetch_output_tty) || return 1
+
   if [[ -n "${TMUX:-}" ]] && command -v tmux >/dev/null; then
     # Pane size is reliable here; $COLUMNS/$LINES during .zshrc can be wrong on splits
     read -r cols lines <<<"$(tmux display -p -t "${TMUX_PANE}" '#{pane_width} #{pane_height}' 2>/dev/null)"
@@ -113,36 +135,46 @@ _run_startup_fetch() {
     -H "$h"
   )
 
-  # -b builds/validates cache without printing status lines or starting the animation
-  command anifetch "${af_args[@]}" -b &>/dev/null
-
-  # Default loop (-1): animates until you press a key; --no-input-restore avoids replaying that key
-  command anifetch "${af_args[@]}" --no-input-restore
+  if [[ "$otty" == /dev/fd/1 ]]; then
+    command anifetch "${af_args[@]}" -b &>/dev/null || return 1
+    command anifetch "${af_args[@]}" --no-input-restore || return 1
+  else
+    command anifetch "${af_args[@]}" -b &>"$otty" || return 1
+    command anifetch "${af_args[@]}" --no-input-restore <"$otty" >"$otty" 2>"$otty" || return 1
+  fi
 }
 
 _run_startup_fetch_if_needed() {
   local marker
-  marker=$(_anifetch_pane_marker 2>/dev/null) || true
-  [[ -n "$marker" && -f "$marker" ]] && return
+  marker=$(_anifetch_session_marker 2>/dev/null) || true
+  [[ -n "$marker" && -f "$marker" ]] && return 0
 
-  _run_startup_fetch
+  # Claim the session before fetch so pane/window splits skip immediately
+  if [[ -n "$marker" ]]; then
+    mkdir -p "${marker:h}"
+    : >"$marker"
+  fi
 
-  [[ -n "$marker" ]] || return
-  mkdir -p "${marker:h}"
-  : >"$marker"
+  _run_startup_fetch || {
+    [[ -n "$marker" && -f "$marker" ]] && rm -f "$marker"
+    return 1
+  }
 }
 
 _anifetch_startup_precmd() {
-  precmd_functions=( ${precmd_functions:#_anifetch_startup_precmd} )
-  _run_startup_fetch_if_needed
+  if _run_startup_fetch_if_needed; then
+    precmd_functions=( ${precmd_functions:#_anifetch_startup_precmd} )
+  elif (( ++_anifetch_precmd_tries > 12 )); then
+    precmd_functions=( ${precmd_functions:#_anifetch_startup_precmd} )
+  fi
 }
 
 _zsh_autostarts_tmux() {
   command -v tmux >/dev/null && [[ -t 1 ]] && [[ -z "${TMUX:-}" ]]
 }
 
-# Inside tmux: defer until the pane is laid out (splits/new windows). Outside tmux
-# without autostart: run immediately. With autostart: skip here — new panes run it.
+# Inside tmux: defer until the first pane is laid out; once per session (not splits).
+# Outside tmux without autostart: run immediately. With autostart: skip here.
 if [[ -n "${TMUX:-}" ]]; then
   precmd_functions+=( _anifetch_startup_precmd )
 elif ! _zsh_autostarts_tmux; then

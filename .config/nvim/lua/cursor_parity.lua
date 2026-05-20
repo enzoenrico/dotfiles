@@ -91,17 +91,68 @@ map("n", "gr", function()
 end, { desc = "Rename (Cursor gr)" })
 
 map("n", "gi", function()
-  require("telescope.builtin").lsp_implementations()
-end, { desc = "LSP implementations (Telescope)" })
+  require("custom.go_implementation").go()
+end, { desc = "Go to implementation / definitions (LSP + Treesitter + grep)" })
 
 map("n", "<D-]>", function()
   require("telescope.builtin").lsp_references()
 end, { desc = "LSP references (Cursor Cmd+])" })
 
+local function sanitize_tabufline_bufs()
+  if type(vim.t.bufs) ~= "table" then
+    return
+  end
+  vim.t.bufs = vim.tbl_filter(function(b)
+    return type(b) == "number" and vim.api.nvim_buf_is_valid(b)
+  end, vim.t.bufs)
+end
+
+local function jump_definition_in_split(split_cmd)
+  sanitize_tabufline_bufs()
+  local buf = vim.api.nvim_get_current_buf()
+  local go_impl = require "custom.go_implementation"
+  local items, enc = go_impl.definition_items(buf)
+  local jump_type = split_cmd == "vsplit" and "vsplit" or "split"
+
+  if #items > 1 then
+    require("telescope.builtin").lsp_definitions { jump_type = jump_type }
+    return
+  end
+
+  if #items == 1 then
+    vim.cmd(split_cmd)
+    go_impl.jump_to(items[1], { offset_encoding = enc })
+    return
+  end
+
+  local sym = vim.fn.expand "<cword>"
+  local locations = select(1, go_impl.lsp_locations(sym))
+  if #locations > 1 then
+    require("telescope.builtin").lsp_definitions { jump_type = jump_type }
+    return
+  end
+  if #locations == 1 then
+    vim.cmd(split_cmd)
+    go_impl.jump_to(locations[1])
+    return
+  end
+
+  vim.notify(("No definition found for %q"):format(sym), vim.log.levels.INFO)
+end
+
 map("n", "<S-D-]>", function()
-  vim.cmd "split"
-  vim.lsp.buf.definition()
+  jump_definition_in_split "split"
 end, { desc = "Definition in split (Cursor Shift+Cmd+])" })
+
+local function goto_side()
+  jump_definition_in_split "vsplit"
+end
+
+map("n", "g}", goto_side, { desc = "Definition / file in side (vertical split)" })
+
+vim.api.nvim_create_user_command("SideGo", goto_side, {
+  desc = "LSP definition (or gf) in a vertical split to the right",
+})
 
 -- Shift+Option+F slot (tmux): format when Conform is available
 local function format_doc()
