@@ -57,13 +57,18 @@
   k-hr (tap-hold-release-keys $tap-time $hold-time (multi k @tap) ralt $right-hand-keys)
   l-hr (tap-hold-release-keys $tap-time $hold-time (multi l @tap) rctl $right-hand-keys)
   sc-hr (tap-hold-release-keys $tap-time $hold-time (multi ; @tap) rsft $right-hand-keys)
+
+  h-nav (fork h (unshift left) (lsft))
+  j-nav (fork @j-hr (unshift down) (lsft))
+  k-nav (fork @k-hr (unshift up) (lsft))
+  l-nav (fork @l-hr (unshift right) (lsft))
 )
 
 (deflayer base
   caps _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  esc  @a-hr @s-hr @d-hr @f-hr _    _    @j-hr @k-hr @l-hr @sc-hr _    _
+  esc  @a-hr @s-hr @d-hr @f-hr _    @h-nav @j-nav @k-nav @l-nav @sc-hr _    _
   _    _    _    _    _    _    _    _    _    _    _    _
   f18  _    _    _              _              _    _
 )
