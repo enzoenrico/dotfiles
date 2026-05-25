@@ -65,7 +65,7 @@
 )
 
 (deflayer base
-  caps _    _    _    _    _    _    _    _    _    _    _    _
+  caps brdn brup mctl sls  dtn  dnd  prev pp   next mute vold volu
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   esc  @a-hr @s-hr @d-hr @f-hr _    @h-nav @j-nav @k-nav @l-nav @sc-hr _    _
@@ -74,7 +74,7 @@
 )
 
 (deflayer nomods
-  caps _    _    _    _    _    _    _    _    _    _    _    _
+  caps brdn brup mctl sls  dtn  dnd  prev pp   next mute vold volu
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
   esc  a    s    d    f    _    _    j    k    l    ;    _    _
