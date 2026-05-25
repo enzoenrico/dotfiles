@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.mitel.kanata</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/opt/kanata/bin/kanata</string>
+		<string>--no-wait</string>
+		<string>--cfg</string>
+		<string>/Users/mitel/.config/kanata/kanata.kbd</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/mitel/.config/kanata</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>/opt/homebrew/var/log/kanata.log</string>
+	<key>StandardOutPath</key>
+	<string>/opt/homebrew/var/log/kanata.log</string>
+</dict>
+</plist>

@@ -12,7 +12,6 @@ typescript
 .config/opencode/
 .config/aider/
 .config/vercel-plugin/
-.config/karabiner/automatic_backups/
 .config/.aider.*
 .config/configstore/
 .config/uv/

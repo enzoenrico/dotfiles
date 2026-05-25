@@ -1,0 +1,78 @@
+;; Kanata — MacBook keyboard config.
+;; Built-in MacBook keyboard only. External keyboards are ignored by device filter.
+;;
+;; Home-row behavior follows:
+;; https://github.com/KensukeM39/kanata-homerow-hyper-keymap/blob/main/kanata-mac-mac-US.kbd
+;; Key idea: tap-hold-release-keys + a temporary nomods layer for fast rolls.
+
+(defcfg
+  process-unmapped-keys yes
+  concurrent-tap-hold yes
+  macos-dev-names-include (
+    "Apple Internal Keyboard / Trackpad"
+  )
+)
+
+(defvar
+  tap-time 200
+  hold-time 100
+
+  left-hand-keys (
+    q w e r t
+    a s d f g
+    z x c v b
+  )
+
+  right-hand-keys (
+    y u i o p
+    h j k l ;
+    n m , . /
+  )
+)
+
+(defsrc
+  esc  f1   f2   f3   f4   f5   f6   f7   f8   f9   f10  f11  f12
+  1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
+  caps a    s    d    f    g    h    j    k    l    ;    '    ret
+  lsft z    x    c    v    b    n    m    ,    .    /    rsft
+  fn   lctl lalt lmet           spc            rmet ralt
+)
+
+(deffakekeys
+  to-base (layer-switch base)
+)
+
+(defalias
+  tap (multi
+    (layer-switch nomods)
+    (on-idle-fakekey to-base tap 20)
+  )
+
+  a-hr (tap-hold-release-keys $tap-time $hold-time (multi a @tap) rsft $left-hand-keys)
+  s-hr (tap-hold-release-keys $tap-time $hold-time (multi s @tap) lctl $left-hand-keys)
+  d-hr (tap-hold-release-keys $tap-time $hold-time (multi d @tap) lalt $left-hand-keys)
+  f-hr (tap-hold-release-keys $tap-time $hold-time (multi f @tap) lmet $left-hand-keys)
+  j-hr (tap-hold-release-keys $tap-time $hold-time (multi j @tap) rmet $right-hand-keys)
+  k-hr (tap-hold-release-keys $tap-time $hold-time (multi k @tap) ralt $right-hand-keys)
+  l-hr (tap-hold-release-keys $tap-time $hold-time (multi l @tap) rctl $right-hand-keys)
+  sc-hr (tap-hold-release-keys $tap-time $hold-time (multi ; @tap) rsft $right-hand-keys)
+)
+
+(deflayer base
+  caps _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _    _    _
+  esc  @a-hr @s-hr @d-hr @f-hr _    _    @j-hr @k-hr @l-hr @sc-hr _    _
+  _    _    _    _    _    _    _    _    _    _    _    _
+  f18  _    _    _              _              _    _
+)
+
+(deflayer nomods
+  caps _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _    _    _
+  esc  a    s    d    f    _    _    j    k    l    ;    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _
+  f18  _    _    _              _              _    _
+)
