@@ -23,7 +23,6 @@ _zsh_autostarts_tmux() {
 
 _zsh_tmux_attach_or_create() {
   local session="$1" window="$2"
-  # -A is only valid for new-session (attach-or-create), not new-window.
   if tmux has-session -t "$session" 2>/dev/null; then
     tmux new-window -t "$session" -n "$window" -c "${PWD}"
     exec tmux attach-session -t "$session"

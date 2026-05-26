@@ -22,15 +22,7 @@ map("n", "<C-S-Right>", "<C-w>L", { desc = "Move window far right", silent = tru
 -- Swap window with next
 map("n", "<C-S-x>", "<C-w>x", { desc = "Swap window with next", silent = true })
 
--- Bottom panel: Ctrl+` → horizontal bottom terminal (NvChad)
-map({ "n", "t" }, "<C-`>", function()
-  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
-end, { desc = "Toggle bottom terminal (Cursor panel)" })
-
--- Alternate: Shift+Alt+j → same toggle (Alt = Meta)
-map({ "n", "t" }, "<M-J>", function()
-  require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
-end, { desc = "Toggle bottom terminal (Shift+Alt+j parity)" })
+-- Floating terminal: <C-`>, <M-J>, <leader>tt (toggleterm.nvim; press again to hide, shell stays alive)
 
 -- Sidebar: Alt+Cmd+s → NvimTreeToggle (+ NvChad fallbacks stay on <C-n> / <leader>e)
 map("n", "<M-D-s>", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle sidebar (Cursor Alt+Cmd+s)" })

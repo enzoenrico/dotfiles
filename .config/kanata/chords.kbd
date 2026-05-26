@@ -1,0 +1,39 @@
+;; Home row mod chords — ported from Karabiner simultaneous rules.
+;; Included only from kanata.kbd (built-in keyboard).
+;; Note: Kanata treats (a s) and (s a) as one chord; order-independent.
+
+(defvar chord-timeout 100)
+
+(defchordsv2
+  ;; Left hand — 2-key
+  (a s) (multi rsft lctl) $chord-timeout all-released ()
+  (a d) (multi rsft lalt) $chord-timeout all-released ()
+  (a f) (multi rsft lmet) $chord-timeout all-released ()
+  (s d) (multi lctl lalt) $chord-timeout all-released ()
+  (s f) (multi lctl lmet) $chord-timeout all-released ()
+  (d f) (multi lalt lmet) $chord-timeout all-released ()
+
+  ;; Left hand — 3-key
+  (a s d) (multi rsft lctl lalt) $chord-timeout all-released ()
+  (a d f) (multi rsft lalt lmet) $chord-timeout all-released ()
+  (s d f) (multi lctl lalt lmet) $chord-timeout all-released ()
+
+  ;; Left hand — 4-key
+  (a s d f) (multi rsft lctl lalt lmet) $chord-timeout all-released ()
+
+  ;; Right hand — 2-key
+  (; l) (multi rsft rctl) $chord-timeout all-released ()
+  (; k) (multi rsft ralt) $chord-timeout all-released ()
+  (; j) (multi rsft rmet) $chord-timeout all-released ()
+  (l k) (multi rctl ralt) $chord-timeout all-released ()
+  (l j) (multi rctl rmet) $chord-timeout all-released ()
+  (k j) (multi ralt rmet) $chord-timeout all-released ()
+
+  ;; Right hand — 3-key
+  (; l k) (multi rsft ralt rctl) $chord-timeout all-released ()
+  (; k j) (multi rsft rmet ralt) $chord-timeout all-released ()
+  (l k j) (multi rctl rmet ralt) $chord-timeout all-released ()
+
+  ;; Right hand — 4-key
+  (; l k j) (multi rsft rctl ralt rmet) $chord-timeout all-released ()
+)

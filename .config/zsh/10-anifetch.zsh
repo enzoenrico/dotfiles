@@ -1,16 +1,13 @@
 # Splash on interactive shells only (needs a real terminal for playback)
+# Inside tmux: once per pane (new window/tab), not per session id — tmux reuses $0, $1, …
+# across server restarts, which left stale session-* markers blocking "main".
 
-_anifetch_tmux_session_key() {
+_anifetch_pane_marker() {
   [[ -n "${TMUX:-}" ]] || return 1
-  local rest="${TMUX#*,}"
-  print -r "${rest#*,}"
-}
-
-_anifetch_session_marker() {
-  [[ -n "${TMUX:-}" ]] || return 1
-  local key
-  key=$(_anifetch_tmux_session_key) || return 1
-  print -r "${XDG_CACHE_HOME:-$HOME/.cache}/anifetch/session-${key}"
+  local pane created
+  pane=$(tmux display-message -p '#{pane_id}' 2>/dev/null) || return 1
+  created=$(tmux display-message -p '#{session_created}' 2>/dev/null) || return 1
+  print -r "${XDG_CACHE_HOME:-$HOME/.cache}/anifetch/s${created}-pane-${pane}"
 }
 
 _zsh_run_anifetch() {
@@ -20,7 +17,7 @@ _zsh_run_anifetch() {
   command -v anifetch >/dev/null || return 0
 
   local marker
-  marker=$(_anifetch_session_marker 2>/dev/null)
+  marker=$(_anifetch_pane_marker 2>/dev/null)
   if [[ -n "$marker" && -f "$marker" ]]; then
     return 0
   fi

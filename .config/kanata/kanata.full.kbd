@@ -1,0 +1,63 @@
+;; Kanata — MacBook built-in keyboard ONLY (see macos-dev-names-include).
+;; Quit Karabiner-Elements before use to avoid conflicts.
+
+(defcfg
+  process-unmapped-keys yes
+  concurrent-tap-hold yes
+  macos-dev-names-include (
+    "Apple Internal Keyboard / Trackpad"
+  )
+)
+
+(defvar
+  tap-time 200   ;; tap / repress (ms)
+  hold-time 100  ;; Karabiner to_if_held_down_threshold
+)
+
+(include "chords.kbd")
+
+;; Arrow layer while left shift is held (replaces fork + lsft triggers)
+(deflayermap (nav)
+  h left
+  j down
+  k up
+  l right
+)
+
+(defsrc
+  esc  1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
+  caps a    s    d    f    g    h    j    k    l    ;    '    ret
+  lsft z    x    c    v    b    n    m    ,    .    /    rsft
+  lctl lmet lalt           spc            ralt rmet rctl
+  f18
+)
+
+(defalias
+  caps-esc esc
+  esc-caps caps
+
+  ;; Home row mods (Karabiner to_if_held_down)
+  a-hr (tap-hold $tap-time $hold-time a rsft)
+  s-hr (tap-hold $tap-time $hold-time s lctl)
+  d-hr (tap-hold $tap-time $hold-time d lalt)
+  f-hr (tap-hold $tap-time $hold-time f lmet)
+  j-hr (tap-hold $tap-time $hold-time j rmet)
+  k-hr (tap-hold $tap-time $hold-time k ralt)
+  l-hr (tap-hold $tap-time $hold-time l rctl)
+  sc-hr (tap-hold $tap-time $hold-time ; rsft)
+
+  ;; Hold lsft → shift + temporary nav layer (hjkl arrows)
+  lsft-key (multi lsft (layer-while-held nav))
+
+  rmet-rctl rctl
+)
+
+(deflayer base
+  @esc-caps 1    2    3    4    5    6    7    8    9    0    -    =    bspc
+  tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
+  @caps-esc @a-hr @s-hr @d-hr @f-hr g h @j-hr @k-hr @l-hr @sc-hr ' ret
+  @lsft-key z    x    c    v    b    n    m    ,    .    /    rsft
+  lctl lmet lalt           spc            ralt @rmet-rctl rctl
+  f18
+)

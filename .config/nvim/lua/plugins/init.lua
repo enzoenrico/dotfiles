@@ -53,15 +53,20 @@ return {
   },
   {
     "nvim-treesitter/nvim-treesitter",
-    opts = {
-      ensure_installed = {
+    lazy = false,
+    opts = function(_, opts)
+      opts = opts or {}
+      opts.ensure_installed = opts.ensure_installed or {}
+      vim.list_extend(opts.ensure_installed, {
         "vim", "lua", "vimdoc",
         "html", "css", "swift",
-      },
-    },
-    config = function(_, opts)
-      require("nvim-treesitter.configs").setup(opts)
+      })
+      return opts
+    end,
+    config = function()
+      require("nvim-treesitter").setup()
       require("configs.treesitter_nvim012").patch()
+      require("configs.treesitter_ignore").setup()
     end,
   },
   {
@@ -119,7 +124,11 @@ return {
       vim.list_extend(opts.spec, {
         { "<leader>s", group = "Swift / Xcodebuild", mode = "n" },
         { "<leader>t", group = "Splits / terminal", mode = "n" },
+        { "<leader>tt", desc = "Floating terminal", mode = "n" },
+        { "<leader>tb", desc = "Bottom terminal", mode = "n" },
+        { "<leader>tV", desc = "Vertical terminal", mode = "n" },
         { "<leader>g", group = "Git", mode = "n" },
+        { "<leader>c", group = "Cursor agent", mode = "n" },
       })
       return opts
     end,
@@ -168,6 +177,37 @@ return {
     },
     keys = {
       { "<leader>gf", "<cmd>Fugit2<cr>", desc = "Fugit2", mode = "n" },
+    },
+  },
+
+  -- Cursor SDK agent chat (cursor-agent CLI)
+  {
+    "enzoenrico/cursor.nvim",
+    branch = "cursor/avante-ui-overhaul-9164",
+    cond = function()
+      return not vim.g.vscode
+    end,
+    cmd = {
+      "CursorChat",
+      "CursorAsk",
+      "CursorStop",
+      "CursorStatus",
+      "CursorVersion",
+      "CursorToggle",
+      "CursorFocus",
+      "CursorNew",
+      "CursorEdit",
+      "CursorHistory",
+      "CursorModel",
+      "CursorZen",
+      "CursorApply",
+      "CursorApplyAll",
+    },
+    opts = {
+      keymaps = true,
+      ui = {
+        layout = "right",
+      },
     },
   },
 

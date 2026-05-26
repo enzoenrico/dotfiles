@@ -1,4 +1,4 @@
---- Xcodebuild.nvim + nvim-dap-ui: live app logs in the DAP Console (debug only).
+--- Xcodebuild.nvim + nvim-dap-ui: app logs in a bottom console panel only (no DAP sidebars).
 local M = {}
 
 --- Set by build_and_debug before launch; cleared after auto-focusing console.
@@ -43,19 +43,10 @@ function M.setup_dap_ui()
   local dap = require("dap")
 
   require("dapui").setup({
+    controls = { enabled = false },
     layouts = {
       {
-        elements = {
-          { id = "scopes", size = 0.25 },
-          { id = "breakpoints", size = 0.25 },
-          { id = "stacks", size = 0.25 },
-          { id = "watches", size = 0.25 },
-        },
-        size = 40,
-        position = "left",
-      },
-      {
-        elements = { "repl", "console" },
+        elements = { "console" },
         size = 0.28,
         position = "bottom",
       },
@@ -125,7 +116,11 @@ function M.setup_autocmds()
 end
 
 function M.setup_xcodebuild()
-  require("xcodebuild").setup()
+  require("xcodebuild").setup({
+    logs = {
+      auto_close_on_app_launch = true,
+    },
+  })
   require("xcodebuild.integrations.dap").setup()
 end
 

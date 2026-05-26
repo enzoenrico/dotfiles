@@ -76,9 +76,6 @@ else
   pcall(vim.keymap.del, "n", "<leader>v")
   map("n", "<leader>th", "<C-w>s", { desc = "Horizontal split" })
   map("n", "<leader>tv", "<C-w>v", { desc = "Vertical split" })
-  map({ "n", "t" }, "<leader>tt", function()
-    require("nvchad.term").toggle { pos = "sp", id = "htoggleTerm" }
-  end, { desc = "Toggle bottom terminal" })
 
   require "cursor_parity"
 end

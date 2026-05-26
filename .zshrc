@@ -35,6 +35,7 @@ alias sail="./vendor/bin/sail"
 alias ff='nvim $(fzf --preview="bat --color=always {}")'
 alias venv="python3 -m venv .venv && source ./.venv/bin/activate"
 alias lg="lazygit"
+alias ndiff="nvim -c :DiffviewOpen ."
 
 
 

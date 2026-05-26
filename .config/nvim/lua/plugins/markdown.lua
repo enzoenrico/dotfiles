@@ -2,6 +2,7 @@ return {
   {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
+      opts = opts or {}
       opts.ensure_installed = opts.ensure_installed or {}
 
       local parsers = {
