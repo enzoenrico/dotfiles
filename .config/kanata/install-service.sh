@@ -1,13 +1,22 @@
 #!/bin/bash
 # Install Kanata as a root LaunchDaemon (required on macOS for Karabiner VirtualHID).
+# Config is always read from ~/.config/kanata/kanata.kbd for the logged-in user.
 set -euo pipefail
 
-PLIST_SRC="$HOME/.config/kanata/com.mitel.kanata.plist"
+KANATA_DIR="${HOME}/.config/kanata"
+PLIST_SRC="${KANATA_DIR}/com.mitel.kanata.plist"
 PLIST_DST="/Library/LaunchDaemons/com.mitel.kanata.plist"
+LAUNCH_SCRIPT_SRC="${KANATA_DIR}/kanata-launch.sh"
 KANATA_BIN="/opt/homebrew/opt/kanata/bin/kanata"
+BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
+LAUNCH_SCRIPT_DST="${BREW_PREFIX}/bin/kanata-mitel-launch"
 
 if [[ ! -f "$PLIST_SRC" ]]; then
   echo "Missing $PLIST_SRC"
+  exit 1
+fi
+if [[ ! -x "$LAUNCH_SCRIPT_SRC" ]]; then
+  echo "Missing or not executable: $LAUNCH_SCRIPT_SRC"
   exit 1
 fi
 
@@ -17,13 +26,17 @@ brew services stop kanata 2>/dev/null || true
 launchctl bootout "gui/$(id -u)/homebrew.mxcl.kanata" 2>/dev/null || true
 sleep 1
 
+echo "Installing launch wrapper -> ${LAUNCH_SCRIPT_DST}"
+echo "  (reads ~/.config/kanata/kanata.kbd for the console user)"
+sudo install -m 755 "$LAUNCH_SCRIPT_SRC" "$LAUNCH_SCRIPT_DST"
+
 echo "Installing root LaunchDaemon..."
 sudo cp "$PLIST_SRC" "$PLIST_DST"
 sudo chown root:wheel "$PLIST_DST"
 sudo chmod 644 "$PLIST_DST"
 
-echo "Validating config..."
-sudo "$KANATA_BIN" --cfg "$HOME/.config/kanata/kanata.kbd" --check
+echo "Validating config at ${KANATA_DIR}/kanata.kbd..."
+sudo "$KANATA_BIN" --cfg "${KANATA_DIR}/kanata.kbd" --check
 
 echo "Loading service..."
 sudo launchctl bootout system/com.mitel.kanata 2>/dev/null || true

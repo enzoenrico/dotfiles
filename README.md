@@ -22,7 +22,8 @@ cp .secrets.zsh.example ~/.secrets.zsh
 
 ## What is tracked
 
-- Neovim, Karabiner, Aerospace, borders, Kitty, WezTerm, fastfetch, scripts, Swift formatter config, fish, gh, and related essentials under `.config/` (iTerm2 App Support is excluded — it lives in `~/Library`)
+- Neovim, Karabiner, Aerospace, borders, WezTerm, fastfetch, scripts, Swift formatter config, fish, gh, and related essentials under `.config/` (iTerm2 App Support is excluded — it lives in `~/Library`)
+- **Kitty** — `.config/kitty/kitty.conf` plus macOS appearance themes (`dark-theme.auto.conf`, `light-theme.auto.conf`, `no-preference-theme.auto.conf`) and `themes.conf` (Vesper base colors)
 - `.zshrc`, `.tmux.conf`, `.gitconfig`, `.gitignore_global`
 
 ## What is excluded

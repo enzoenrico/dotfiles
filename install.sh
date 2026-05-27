@@ -17,6 +17,7 @@ RSYNC_EXCLUDES=(
   --exclude '.aider.*'
   --exclude 'configstore'
   --exclude 'nvim/nvim'
+  # Accidental duplicate config dir (~/.config/kitty/kitty/); not used by kitty
   --exclude 'kitty/kitty'
 )
 
