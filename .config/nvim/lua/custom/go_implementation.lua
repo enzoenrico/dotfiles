@@ -1,4 +1,4 @@
---- Go to implementation / definition: LSP, Treesitter, workspace grep.
+--- Go to implementation: LSP implementations, with declaration search fallback.
 --- gi: jump when exactly one target in the current file; otherwise Telescope list.
 
 local M = {}
@@ -129,6 +129,87 @@ local function sync_results(buf, method, params, timeout_ms)
   return merged
 end
 
+local function workspace_root()
+  local buf = vim.api.nvim_get_current_buf()
+  for _, client in ipairs(vim.lsp.get_clients { bufnr = buf }) do
+    local root = client.root_dir or (client.config and client.config.root_dir)
+    if root and root ~= "" then
+      return root
+    end
+  end
+
+  local file = vim.api.nvim_buf_get_name(buf)
+  local start = vim.fs.dirname(vim.loop.fs_realpath(file) or file)
+  if not start or start == "" then
+    return vim.loop.cwd()
+  end
+
+  local markers = { ".git", "buildServer.json", "Package.swift", "*.xcodeproj", "*.xcworkspace", "package.json", "go.mod", "Cargo.toml", "pyproject.toml" }
+  local found = vim.fs.find(markers, { path = start, upward = true })[1]
+  if found then
+    return vim.fs.dirname(found)
+  end
+
+  return start
+end
+
+local function first_client_supporting(buf, method)
+  for _, client in ipairs(vim.lsp.get_clients { bufnr = buf }) do
+    if client:supports_method(method, buf) then
+      return client
+    end
+  end
+  return nil
+end
+
+local function collect_lsp_implementations(timeout_ms)
+  local buf = vim.api.nvim_get_current_buf()
+  local client = first_client_supporting(buf, "textDocument/implementation")
+  if not client then
+    return {}, nil, false
+  end
+
+  local enc = client.offset_encoding
+  local pos_params = vim.lsp.util.make_position_params(0, enc)
+  local out = {}
+  local seen = {}
+
+  add_lsp_locations(
+    out,
+    seen,
+    sync_results(buf, "textDocument/implementation", pos_params, timeout_ms),
+    "lsp-impl",
+    enc
+  )
+
+  return out, enc, true
+end
+
+local function collect_lsp_references(timeout_ms)
+  local buf = vim.api.nvim_get_current_buf()
+  local client = first_client_supporting(buf, "textDocument/references")
+  if not client then
+    return {}, nil, false
+  end
+
+  local enc = client.offset_encoding
+  local params = vim.tbl_extend("force", vim.lsp.util.make_position_params(0, enc), {
+    context = { includeDeclaration = false },
+  })
+  local out = {}
+  local seen = {}
+
+  add_lsp_locations(
+    out,
+    seen,
+    sync_results(buf, "textDocument/references", params, timeout_ms),
+    "lsp-ref",
+    enc
+  )
+
+  return out, enc, true
+end
+
 local function collect_lsp(sym, timeout_ms)
   local buf = vim.api.nvim_get_current_buf()
   local clients = vim.lsp.get_clients { bufnr = buf }
@@ -247,24 +328,37 @@ local function collect_treesitter(bufnr, sym)
   return out
 end
 
+local function regex_escape(text)
+  return (text:gsub("([%[%]%(%){}.*+?^$|\\%-])", "\\%1"))
+end
+
+local function lua_pattern_escape(text)
+  return (text:gsub("([^%w])", "%%%1"))
+end
+
 local function collect_project_grep(sym)
-  local root = vim.fs.dirname(vim.loop.fs_realpath(vim.api.nvim_buf_get_name(0)) or "")
-  if not root or root == "" then
-    root = vim.loop.cwd()
-  end
-  local esc = vim.fn.escape(sym, "\\/")
+  local root = workspace_root()
+  local esc = regex_escape(sym)
   local patterns = {
-    string.format("function%%s+%s%%s*[(=]", esc),
-    string.format("def%%s+%s%%s*[(]", esc),
-    string.format("fun%%s+%s%%s*[(]", esc),
-    string.format("class%%s+%s%%f[^%%w]", esc),
-    string.format("interface%%s+%s%%f[^%%w]", esc),
-    string.format("type%%s+%s%%f[^%%w]", esc),
-    string.format("enum%%s+%s%%f[^%%w]", esc),
-    string.format("(?:const|let|var)%%s+%s%%f[^%%w]", esc),
-    string.format("local%%s+function%%s+%s%%s*[(]", esc),
-    string.format("export%%s+(?:default%%s+)?(?:async%%s+)?function%%s+%s", esc),
-    string.format("export%%s+(?:const|let|var|class|type|interface|enum)%%s+%s", esc),
+    string.format("\\b(?:class|struct|actor|enum)\\s+\\w+[^\\n{]*:\\s*[^\\n{]*\\b%s\\b", esc),
+    string.format("\\bextension\\s+\\w+[^\\n{]*:\\s*[^\\n{]*\\b%s\\b", esc),
+    string.format("\\bextension\\s+%s\\b", esc),
+    string.format("\\bfunc\\s+%s\\b", esc),
+    string.format("\\b(?:class|struct|actor|enum|protocol)\\s+%s\\b", esc),
+    string.format("\\b(?:let|var)\\s+%s\\b", esc),
+    string.format("\\btypealias\\s+%s\\b", esc),
+    string.format("\\bcase\\s+%s\\b", esc),
+    string.format("\\bfunction\\s+%s\\s*[(=]", esc),
+    string.format("\\bdef\\s+%s\\s*\\(", esc),
+    string.format("\\bfun\\s+%s\\s*\\(", esc),
+    string.format("\\bclass\\s+%s\\b", esc),
+    string.format("\\binterface\\s+%s\\b", esc),
+    string.format("\\btype\\s+%s\\b", esc),
+    string.format("\\benum\\s+%s\\b", esc),
+    string.format("\\b(?:const|let|var)\\s+%s\\b", esc),
+    string.format("\\blocal\\s+function\\s+%s\\s*\\(", esc),
+    string.format("\\bexport\\s+(?:default\\s+)?(?:async\\s+)?function\\s+%s\\b", esc),
+    string.format("\\bexport\\s+(?:const|let|var|class|type|interface|enum)\\s+%s\\b", esc),
   }
 
   local args = { "rg", "--vimgrep", "--no-heading", "--smart-case", "-g", "!.git", "-g", "!node_modules" }
@@ -308,7 +402,100 @@ local function preview_line(loc)
     local lines = vim.api.nvim_buf_get_lines(bufnr, loc.lnum - 1, loc.lnum, false)
     return lines[1] or ""
   end
+  if loc.filename and loc.filename ~= "" then
+    local ok, lines = pcall(vim.fn.readfile, loc.filename, "", loc.lnum)
+    if ok and lines then
+      return lines[loc.lnum] or ""
+    end
+  end
   return ""
+end
+
+local function read_location_lines(loc, first, last)
+  first = math.max(first, 1)
+  last = math.max(last, first)
+
+  local bufnr = loc.bufnr
+  if bufnr and bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr) then
+    return vim.api.nvim_buf_get_lines(bufnr, first - 1, last, false)
+  end
+
+  if not loc.filename or loc.filename == "" then
+    return {}
+  end
+
+  local ok, lines = pcall(vim.fn.readfile, loc.filename, "", last)
+  if not ok or not lines then
+    return {}
+  end
+
+  local out = {}
+  for i = first, last do
+    out[#out + 1] = lines[i] or ""
+  end
+  return out
+end
+
+local function swift_scope_before(loc)
+  local lines = read_location_lines(loc, math.max(1, loc.lnum - 250), loc.lnum)
+  for i = #lines, 1, -1 do
+    local line = lines[i]:gsub("//.*", "")
+    for _, kind in ipairs { "protocol", "extension", "struct", "actor", "enum", "class" } do
+      local name = line:match("^%s*[%w_@%s]*" .. kind .. "%s+([%w_]+)")
+      if name and not (kind == "class" and (name == "func" or name == "var")) then
+        return kind
+      end
+    end
+  end
+  return nil
+end
+
+local function swift_line_has_symbol_decl(line, sym, keyword)
+  local pat = lua_pattern_escape(sym)
+  return line:match("%f[%w_]" .. keyword .. "%s+" .. pat .. "%f[^%w_]") ~= nil
+end
+
+local function swift_line_has_conformance(line, sym)
+  local pat = lua_pattern_escape(sym)
+  for _, kind in ipairs { "class", "struct", "actor", "enum" } do
+    if line:match("%f[%w_]" .. kind .. "%s+[%w_]+[^\n{]*:%s*[^\n{]*%f[%w_]" .. pat .. "%f[^%w_]") then
+      return true
+    end
+  end
+  return line:match("%f[%w_]extension%s+[%w_%.]+[^\n{]*:%s*[^\n{]*%f[%w_]" .. pat .. "%f[^%w_]") ~= nil
+end
+
+local function location_looks_like_implementation(loc, sym)
+  local filename = loc.filename
+  if (not filename or filename == "") and loc.bufnr and loc.bufnr ~= -1 then
+    filename = vim.api.nvim_buf_get_name(loc.bufnr)
+  end
+  filename = filename or ""
+  if not filename:match "%.swift$" then
+    return true
+  end
+
+  local line = preview_line(loc):gsub("//.*", "")
+  if line == "" then
+    return false
+  end
+
+  if swift_line_has_conformance(line, sym) then
+    return true
+  end
+
+  local scope = swift_scope_before(loc)
+  if swift_line_has_symbol_decl(line, sym, "protocol") then
+    return false
+  end
+
+  for _, keyword in ipairs { "func", "var", "let", "case", "typealias", "extension", "class", "struct", "actor", "enum" } do
+    if swift_line_has_symbol_decl(line, sym, keyword) then
+      return scope ~= "protocol"
+    end
+  end
+
+  return false
 end
 
 --- Open a location in the current (or given) window.
@@ -389,6 +576,11 @@ local function show_picker(locations, sym)
           line = vim.trim(line):sub(1, 80)
           return {
             value = entry,
+            path = entry.filename,
+            filename = entry.filename,
+            bufnr = entry.bufnr,
+            lnum = entry.lnum,
+            col = entry.col or 0,
             display = string.format("%s:%d:%d [%s] %s", file, entry.lnum, (entry.col or 0) + 1, entry.kind or "?", line),
             ordinal = table.concat { file, entry.kind, line },
           }
@@ -426,13 +618,62 @@ local function apply_cursor_filter(all, cur)
   return filtered, used_unfiltered_fallback
 end
 
---- LSP-only collection (fast path for gi / g} fallbacks).
+local function filter_current_location(all, cur)
+  local filtered = {}
+  for _, loc in ipairs(all) do
+    if not same_position(loc, cur) then
+      filtered[#filtered + 1] = loc
+    end
+  end
+  return filtered
+end
+
+--- LSP-only collection (fast path for definition-side fallbacks).
 function M.lsp_locations(sym, opts)
   opts = opts or {}
   local cur = cursor_location()
   local all = collect_lsp(sym, opts.lsp_timeout or 2500)
   local filtered, used_unfiltered_fallback = apply_cursor_filter(all, cur)
   return filtered, cur, all, used_unfiltered_fallback
+end
+
+function M.implementation_locations(sym, opts)
+  opts = opts or {}
+  sym = sym or symbol_at_cursor()
+  local cur = cursor_location()
+  local all, enc, supported = collect_lsp_implementations(opts.lsp_timeout or 2500)
+
+  local seen = {}
+  for _, loc in ipairs(all) do
+    seen[loc_key(loc)] = true
+  end
+
+  local refs, ref_enc, refs_supported = collect_lsp_references(opts.lsp_timeout or 2500)
+  enc = enc or ref_enc
+  supported = supported or refs_supported
+  for _, loc in ipairs(refs) do
+    add_location(all, seen, loc)
+  end
+
+  pcall(function()
+    for _, loc in ipairs(collect_treesitter(cur.bufnr, sym)) do
+      add_location(all, seen, loc)
+    end
+  end)
+  pcall(function()
+    for _, loc in ipairs(collect_project_grep(sym)) do
+      add_location(all, seen, loc)
+    end
+  end)
+
+  local filtered = {}
+  for _, loc in ipairs(all) do
+    if not same_position(loc, cur) and location_looks_like_implementation(loc, sym) then
+      filtered[#filtered + 1] = loc
+    end
+  end
+
+  return filtered, cur, all, enc, supported
 end
 
 function M.collect_all(sym, opts)
@@ -478,33 +719,15 @@ function M.go()
     return
   end
 
-  local locations, cur = M.collect_all(sym)
+  local locations, _, all, _, supported = M.implementation_locations(sym)
   if #locations == 0 then
-    vim.notify(("No implementations or definitions for %q"):format(sym), vim.log.levels.INFO)
-    return
-  end
-
-  local enc = nil
-  for _, loc in ipairs(locations) do
-    if loc.offset_encoding then
-      enc = loc.offset_encoding
-      break
+    if not supported then
+      vim.notify(("No LSP implementation provider for %q"):format(sym), vim.log.levels.INFO)
+    elseif #all > 0 then
+      vim.notify(("No implementations for %q outside the current location"):format(sym), vim.log.levels.INFO)
+    else
+      vim.notify(("No implementations for %q"):format(sym), vim.log.levels.INFO)
     end
-  end
-  local jump_opts = enc and { offset_encoding = enc } or nil
-
-  local same_buf = vim.tbl_filter(function(loc)
-    local file = loc.filename or ""
-    return file == cur.filename or loc.bufnr == cur.bufnr
-  end, locations)
-
-  if #same_buf == 1 then
-    jump_to(same_buf[1], jump_opts)
-    return
-  end
-
-  if #locations == 1 then
-    jump_to(locations[1], jump_opts)
     return
   end
 

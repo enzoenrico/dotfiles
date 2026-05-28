@@ -124,20 +124,27 @@ function M.setup_diagnostics()
       5000
     )
 
-    local function count_result(result)
-      if not result then
+    local function count_sync_response(response)
+      if not response then
         return 0
       end
-      return vim.islist(result) and #result or 1
+      local total = 0
+      for _, item in pairs(response) do
+        local result = item.result
+        if result then
+          total = total + (vim.islist(result) and #result or 1)
+        end
+      end
+      return total
     end
-    local impl_n = count_result(impl and impl.result)
-    local refs_n = count_result(refs and refs.result)
+    local impl_n = count_sync_response(impl)
+    local refs_n = count_sync_response(refs)
     lines[#lines + 1] = ("at cursor L%d: implementations=%s, references=%s"):format(
       pos[1],
       impl_n,
       refs_n
     )
-    lines[#lines + 1] = "gi: LSP implementations + definitions, Treesitter, and project grep (not only protocols)."
+    lines[#lines + 1] = "gi: LSP implementations, then project declaration search when SourceKit returns none."
     if impl_n == 0 and refs_n > 0 then
       lines[#lines + 1] = "  → index OK; try <D-]> (references) or put cursor on the protocol name."
     elseif impl_n == 0 and refs_n == 0 then

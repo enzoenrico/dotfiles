@@ -84,7 +84,7 @@ end, { desc = "Rename (Cursor gr)" })
 
 map("n", "gi", function()
   require("custom.go_implementation").go()
-end, { desc = "Go to implementation / definitions (LSP + Treesitter + grep)" })
+end, { desc = "Go to implementation picker" })
 
 map("n", "<D-]>", function()
   require("telescope.builtin").lsp_references()
