@@ -24,10 +24,15 @@ _zsh_autostarts_tmux() {
 _zsh_tmux_attach_or_create() {
   local session="$1" window="$2"
   if tmux has-session -t "$session" 2>/dev/null; then
+    [[ "$session" == cursor-agents ]] && tmux set-option -t "$session" remain-on-exit on 2>/dev/null
     tmux new-window -t "$session" -n "$window" -c "${PWD}"
     exec tmux attach-session -t "$session"
   else
-    exec tmux new-session -s "$session" -n "$window" -c "${PWD}"
+    if [[ "$session" == cursor-agents ]]; then
+      exec tmux new-session -s "$session" -n "$window" -c "${PWD}" \; set-option remain-on-exit on
+    else
+      exec tmux new-session -s "$session" -n "$window" -c "${PWD}"
+    fi
   fi
 }
 
@@ -44,8 +49,3 @@ _zsh_tmux_autostart() {
     _zsh_tmux_attach_or_create "$_user_session" "win-$$"
   fi
 }
-
-# Drop empty tooling windows when the shell exits (inside tmux only)
-if _zsh_is_tooling_terminal && [[ -n "${TMUX:-}" ]]; then
-  trap 'tmux kill-window 2>/dev/null' EXIT
-fi
