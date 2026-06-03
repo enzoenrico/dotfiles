@@ -144,7 +144,7 @@ function M.setup_diagnostics()
       impl_n,
       refs_n
     )
-    lines[#lines + 1] = "gi: LSP implementations, then project declaration search when SourceKit returns none."
+    lines[#lines + 1] = "gi: ripgrep/treesitter implementation search (no LSP). SourceKit impl/refs above are diagnostic only."
     if impl_n == 0 and refs_n > 0 then
       lines[#lines + 1] = "  → index OK; try <D-]> (references) or put cursor on the protocol name."
     elseif impl_n == 0 and refs_n == 0 then

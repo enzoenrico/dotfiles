@@ -65,14 +65,8 @@ map("n", "<leader>cp", function()
   vim.cmd("split " .. vim.fn.fnameescape(plan))
 end, { desc = "Open latest Cursor plan" })
 
--- Close current split/window only (buffer may stay open in other windows). Use <leader>x to kill buffer (NvChad).
-map("n", "<leader>k", function()
-  if #vim.api.nvim_tabpage_list_wins() == 1 then
-    vim.notify("Only one window in this tab", vim.log.levels.INFO)
-    return
-  end
-  vim.cmd "close"
-end, { desc = "Close window / split", silent = true })
+-- Quit current window (:q). Use <leader>x to kill buffer (NvChad).
+map("n", "<leader>k", "<cmd>q<CR>", { desc = "Quit window (:q)", silent = true })
 
 -- Problems
 map("n", "<leader>p", "<cmd>Telescope diagnostics<CR>", { desc = "Problems / diagnostics" })
@@ -84,7 +78,11 @@ end, { desc = "Rename (Cursor gr)" })
 
 map("n", "gi", function()
   require("custom.go_implementation").go()
-end, { desc = "Go to implementation picker" })
+end, { desc = "Go to implementation (fuzzy search, no LSP)" })
+
+map({ "x", "v" }, "gi", function()
+  require("custom.go_implementation").go()
+end, { desc = "Go to implementation for selection" })
 
 map("n", "<D-]>", function()
   require("telescope.builtin").lsp_references()

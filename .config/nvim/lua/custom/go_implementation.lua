@@ -1,5 +1,5 @@
---- Go to implementation: LSP implementations, with declaration search fallback.
---- gi: jump when exactly one target in the current file; otherwise Telescope list.
+--- Go to implementation: symbol at cursor (or visual selection), then fuzzy picker.
+--- gi: ripgrep + treesitter candidates (no LSP); Telescope fuzzy list.
 
 local M = {}
 
@@ -26,18 +26,68 @@ local TS_DEFINE_TYPES = {
   local_function = true,
 }
 
+local function defining_name(node, bufnr)
+  local name_node = node:child_by_field_name "name"
+    or node:child_by_field_name "declarator"
+    or node:named_child(0)
+  while name_node do
+    local t = name_node:type()
+    if t == "identifier" or t == "property_identifier" or t == "type_identifier" then
+      return vim.treesitter.get_node_text(name_node, bufnr)
+    end
+    if t == "function_declarator" or t == "pointer_declarator" then
+      name_node = name_node:child_by_field_name "declarator" or name_node:named_child(0)
+    else
+      name_node = name_node:named_child(0)
+    end
+  end
+  return nil
+end
+
+--- Symbol for gi: visual selection, enclosing TS definition name, else identifier/cword.
 local function symbol_at_cursor()
+  local mode = vim.fn.mode()
+  if mode:find "[vV\022]" then
+    local from = vim.fn.getpos "v"
+    local to = vim.fn.getpos "."
+    local lines = vim.api.nvim_buf_get_lines(0, from[2] - 1, to[2], false)
+    if #lines > 0 then
+      if from[2] == to[2] then
+        lines[1] = lines[1]:sub(from[3], to[3])
+      else
+        lines[1] = lines[1]:sub(from[3])
+        lines[#lines] = lines[#lines]:sub(1, to[3])
+      end
+      local text = vim.trim(table.concat(lines, " "))
+      if text ~= "" then
+        return text, nil
+      end
+    end
+  end
+
+  local bufnr = vim.api.nvim_get_current_buf()
   local ok, node = pcall(vim.treesitter.get_node)
   if ok and node then
-    while node do
-      local t = node:type()
-      if t == "identifier" or t == "property_identifier" or t == "type_identifier" or t == "field_identifier" then
-        local text = vim.treesitter.get_node_text(node, 0)
-        if text and text ~= "" then
-          return text, node
+    local walk = node
+    while walk do
+      if TS_DEFINE_TYPES[walk:type()] then
+        local name = defining_name(walk, bufnr)
+        if name and name ~= "" then
+          return name, walk
         end
       end
-      node = node:parent()
+      walk = walk:parent()
+    end
+    walk = node
+    while walk do
+      local t = walk:type()
+      if t == "identifier" or t == "property_identifier" or t == "type_identifier" or t == "field_identifier" then
+        local text = vim.treesitter.get_node_text(walk, bufnr)
+        if text and text ~= "" then
+          return text, walk
+        end
+      end
+      walk = walk:parent()
     end
   end
   return vim.fn.expand "<cword>", nil
@@ -151,63 +201,6 @@ local function workspace_root()
   end
 
   return start
-end
-
-local function first_client_supporting(buf, method)
-  for _, client in ipairs(vim.lsp.get_clients { bufnr = buf }) do
-    if client:supports_method(method, buf) then
-      return client
-    end
-  end
-  return nil
-end
-
-local function collect_lsp_implementations(timeout_ms)
-  local buf = vim.api.nvim_get_current_buf()
-  local client = first_client_supporting(buf, "textDocument/implementation")
-  if not client then
-    return {}, nil, false
-  end
-
-  local enc = client.offset_encoding
-  local pos_params = vim.lsp.util.make_position_params(0, enc)
-  local out = {}
-  local seen = {}
-
-  add_lsp_locations(
-    out,
-    seen,
-    sync_results(buf, "textDocument/implementation", pos_params, timeout_ms),
-    "lsp-impl",
-    enc
-  )
-
-  return out, enc, true
-end
-
-local function collect_lsp_references(timeout_ms)
-  local buf = vim.api.nvim_get_current_buf()
-  local client = first_client_supporting(buf, "textDocument/references")
-  if not client then
-    return {}, nil, false
-  end
-
-  local enc = client.offset_encoding
-  local params = vim.tbl_extend("force", vim.lsp.util.make_position_params(0, enc), {
-    context = { includeDeclaration = false },
-  })
-  local out = {}
-  local seen = {}
-
-  add_lsp_locations(
-    out,
-    seen,
-    sync_results(buf, "textDocument/references", params, timeout_ms),
-    "lsp-ref",
-    enc
-  )
-
-  return out, enc, true
 end
 
 local function collect_lsp(sym, timeout_ms)
@@ -641,19 +634,8 @@ function M.implementation_locations(sym, opts)
   opts = opts or {}
   sym = sym or symbol_at_cursor()
   local cur = cursor_location()
-  local all, enc, supported = collect_lsp_implementations(opts.lsp_timeout or 2500)
-
+  local all = {}
   local seen = {}
-  for _, loc in ipairs(all) do
-    seen[loc_key(loc)] = true
-  end
-
-  local refs, ref_enc, refs_supported = collect_lsp_references(opts.lsp_timeout or 2500)
-  enc = enc or ref_enc
-  supported = supported or refs_supported
-  for _, loc in ipairs(refs) do
-    add_location(all, seen, loc)
-  end
 
   pcall(function()
     for _, loc in ipairs(collect_treesitter(cur.bufnr, sym)) do
@@ -673,7 +655,7 @@ function M.implementation_locations(sym, opts)
     end
   end
 
-  return filtered, cur, all, enc, supported
+  return filtered, cur, all
 end
 
 function M.collect_all(sym, opts)
@@ -719,11 +701,9 @@ function M.go()
     return
   end
 
-  local locations, _, all, _, supported = M.implementation_locations(sym)
+  local locations, _, all = M.implementation_locations(sym)
   if #locations == 0 then
-    if not supported then
-      vim.notify(("No LSP implementation provider for %q"):format(sym), vim.log.levels.INFO)
-    elseif #all > 0 then
+    if #all > 0 then
       vim.notify(("No implementations for %q outside the current location"):format(sym), vim.log.levels.INFO)
     else
       vim.notify(("No implementations for %q"):format(sym), vim.log.levels.INFO)
