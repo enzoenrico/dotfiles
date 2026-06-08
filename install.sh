@@ -17,13 +17,17 @@ RSYNC_EXCLUDES=(
   --exclude '.aider.*'
   --exclude 'configstore'
   --exclude 'nvim/nvim'
-  # Accidental duplicate config dir (~/.config/kitty/kitty/); not used by kitty
-  --exclude 'kitty/kitty'
+  --exclude 'kitty'
 )
 
 mkdir -p "$HOME/.config"
 rsync -av "${RSYNC_EXCLUDES[@]}" \
   "$DOTFILES/.config/" "$HOME/.config/"
+
+# Kitty terminal (~/.config/kitty)
+mkdir -p "$HOME/.config/kitty"
+rsync -av --exclude 'kitty/' \
+  "$DOTFILES/.config/kitty/" "$HOME/.config/kitty/"
 
 cp "$DOTFILES/.zshrc" "$HOME/.zshrc"
 cp "$DOTFILES/.tmux.conf" "$HOME/.tmux.conf"

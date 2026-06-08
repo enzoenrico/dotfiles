@@ -17,13 +17,13 @@ cp .secrets.zsh.example ~/.secrets.zsh
 # Edit ~/.secrets.zsh with real values
 ```
 
-`sync.sh` rsyncs applicable dirs from `~/.config/` into `.config/` (see excludes in the script).
-`install.sh` pushes the repo copy back to `~/.config/` on a new machine.
+`sync.sh` rsyncs applicable dirs from `~/.config/` into `.config/` (see excludes in the script), with Kitty synced explicitly from `~/.config/kitty/`.
+`install.sh` pushes the repo copy back to `~/.config/` on a new machine, including Kitty into `~/.config/kitty/`.
 
 ## What is tracked
 
 - Neovim, Karabiner, Aerospace, borders, WezTerm, fastfetch, scripts, Swift formatter config, fish, gh, and related essentials under `.config/` (iTerm2 App Support is excluded — it lives in `~/Library`)
-- **Kitty** — `.config/kitty/kitty.conf` plus macOS appearance themes (`dark-theme.auto.conf`, `light-theme.auto.conf`, `no-preference-theme.auto.conf`) and `themes.conf` (Vesper base colors)
+- **Kitty** — `.config/kitty/kitty.conf` plus macOS appearance themes (`dark-theme.auto.conf`, `light-theme.auto.conf`, `no-preference-theme.auto.conf`; light/no-preference use Solarized Light) and `themes.conf` (Vesper palette reference)
 - `.zshrc`, `.tmux.conf`, `.gitconfig`, `.gitignore_global`
 
 ## What is excluded
