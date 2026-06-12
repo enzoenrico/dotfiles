@@ -12,12 +12,12 @@ local function current_theme()
     return "vesper"
   end
 
-  return "ayu_light"
+  return "solarized_light"
 end
 
 M.base46 = {
   theme = current_theme(),
-  theme_toggle = { "vesper", "ayu_light" },
+  theme_toggle = { "vesper", "solarized_light" },
 }
 
 return M

@@ -1,5 +1,8 @@
 require "nvchad.options"
 
+vim.opt.number = true
+vim.opt.relativenumber = true
+
 if vim.g.neovide then
   vim.o.guifont = "GeistMono Nerd Font:h16"
 end
