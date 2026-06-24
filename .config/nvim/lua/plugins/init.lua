@@ -180,37 +180,6 @@ return {
     },
   },
 
-  -- Cursor SDK agent chat (cursor-agent CLI)
-  {
-    "enzoenrico/cursor.nvim",
-    branch = "cursor/avante-ui-overhaul-9164",
-    cond = function()
-      return not vim.g.vscode
-    end,
-    cmd = {
-      "CursorChat",
-      "CursorAsk",
-      "CursorStop",
-      "CursorStatus",
-      "CursorVersion",
-      "CursorToggle",
-      "CursorFocus",
-      "CursorNew",
-      "CursorEdit",
-      "CursorHistory",
-      "CursorModel",
-      "CursorZen",
-      "CursorApply",
-      "CursorApplyAll",
-    },
-    opts = {
-      keymaps = true,
-      ui = {
-        layout = "right",
-      },
-    },
-  },
-
   -- Smear cursor (~= Cursor Smear Cursor); standalone only
   {
     "sphamba/smear-cursor.nvim",
