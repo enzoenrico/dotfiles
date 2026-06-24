@@ -9,7 +9,7 @@ RSYNC_EXCLUDES=(
   --exclude 'node_modules'
   --exclude '.cursor'
   --exclude '.tmp.*'
-  --exclude 'raycast'
+  --exclude '/raycast/'
   --exclude 'opencode'
   --exclude 'aider'
   --exclude 'vercel-plugin'

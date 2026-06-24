@@ -22,10 +22,21 @@ cp .secrets.zsh.example ~/.secrets.zsh
 
 ## What is tracked
 
-- Neovim, Karabiner, Aerospace, borders, WezTerm, fastfetch, scripts, Swift formatter config, fish, gh, and related essentials under `.config/` (iTerm2 App Support is excluded — it lives in `~/Library`)
+- Neovim, Karabiner, **Kanata** (keyboard remapping + Raycast toggle scripts), Aerospace, borders, WezTerm, fastfetch, scripts, Swift formatter config, fish, gh, and related essentials under `.config/` (iTerm2 App Support is excluded — it lives in `~/Library`)
 - **Kitty** — `.config/kitty/kitty.conf` plus macOS appearance themes (`dark-theme.auto.conf`, `light-theme.auto.conf`, `no-preference-theme.auto.conf`; light/no-preference use Solarized Light) and `themes.conf` (Vesper palette reference)
 - `.zshrc`, `.tmux.conf`, `.gitconfig`, `.gitignore_global`
 
 ## What is excluded
 
-Raycast extensions, opencode `node_modules`, aider history, Karabiner automatic backups, and local secrets (`~/.secrets.zsh`).
+Top-level Raycast extensions (`~/.config/raycast/`), opencode `node_modules`, aider history, Karabiner automatic backups, and local secrets (`~/.secrets.zsh`).
+
+## Kanata toggle (Raycast)
+
+After `./install.sh` on a new machine:
+
+```bash
+~/.config/kanata/install-service.sh   # root LaunchDaemon (once)
+~/.config/kanata/install-toggle.sh      # passwordless sudo helper (once)
+```
+
+In Raycast: **Settings → Extensions → Script Commands → Add Directories** → `~/.config/kanata/raycast/`. Use **Toggle Kanata** (optionally assign a hotkey).
