@@ -1,0 +1,17 @@
+schema_version = 1
+
+[app_settings]
+launch_at_login = false
+check_for_updates = false
+update_prompt_seen = true
+show_in_menu_bar = true
+thumbwheel_sensitivity = 14
+
+[devices.0b031.button_bindings]
+MiddleClick = "MiddleClick"
+Back = "BrowserBack"
+Forward = "MissionControl"
+DpiToggle = "CycleDpiPresets"
+
+[devices.0b031.gesture_bindings]
+Up = "MissionControl"
