@@ -10,13 +10,20 @@
 #
 # borders "${options[@]}"
 
+if defaults read -g AppleInterfaceStyle >/dev/null 2>&1; then
+	active_color='glow(0xff5fd7ff)'
+	inactive_color='glow(0xff3b1f52)'
+else
+	active_color='glow(0xffffff00)'
+	inactive_color='glow(0xff8c7a00)'
+fi
+
 options=(
 	style=round
-	width=6.0
+	width=7.0
 	hidpi=off
-  #active_color='glow(0xffffbf00)'
-  active_color=0xffffbf00
-	inactive_color=0xff551010
+	active_color="$active_color"
+	inactive_color="$inactive_color"
 )
 
 borders "${options[@]}"

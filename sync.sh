@@ -23,6 +23,11 @@ RSYNC_EXCLUDES=(
 rsync -av --delete "${RSYNC_EXCLUDES[@]}" \
   "$HOME/.config/" "$DOTFILES/.config/"
 
+if [[ -f "$HOME/Library/LaunchAgents/com.mitel.borders-appearance-watcher.plist" ]]; then
+  cp "$HOME/Library/LaunchAgents/com.mitel.borders-appearance-watcher.plist" \
+    "$DOTFILES/.config/borders/com.mitel.borders-appearance-watcher.plist"
+fi
+
 # Kitty terminal (~/.config/kitty)
 mkdir -p "$DOTFILES/.config/kitty"
 rsync -av --delete --exclude 'kitty/' \
