@@ -128,7 +128,9 @@ return {
         { "<leader>tb", desc = "Bottom terminal", mode = "n" },
         { "<leader>tV", desc = "Vertical terminal", mode = "n" },
         { "<leader>g", group = "Git", mode = "n" },
-        { "<leader>c", group = "Cursor agent", mode = "n" },
+        { "<leader>c", group = "Code AI", mode = "n" },
+        { "<leader>co", desc = "Opencode current file", mode = "n" },
+        { "<leader>ca", desc = "Agent current file", mode = "n" },
       })
       return opts
     end,

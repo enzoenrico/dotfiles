@@ -1,10 +1,18 @@
-# Tmux session routing: main (user) vs cursor-agents (Cursor / tooling)
+# Tmux session routing: main (user terminal) vs cursor-agents (AI tooling)
 _zsh_is_tooling_terminal() {
   [[ -n "${ZSH_TMUX_TOOLING:-}" ]] && return 0
   [[ -n "${CURSOR_AGENT:-}${CURSOR_CLI:-}${CURSOR_SANDBOX:-}" ]] && return 0
-  [[ -n "${VSCODE_IPC_HOOK:-}${VSCODE_INJECTION:-}${VSCODE_GIT_IPC_HANDLE:-}" ]] && return 0
+  [[ -n "${CLAUDECODE:-}${OPENCODE_AGENT:-}${AIDER_AGENT:-}" ]] && return 0
   case "${TERM_PROGRAM:-}" in
-    vscode|cursor|Cursor) return 0 ;;
+    cursor|Cursor) [[ -n "${CURSOR_TRACE_ID:-}${CURSOR_AGENT:-}" ]] && return 0 ;;
+  esac
+  return 1
+}
+
+_zsh_is_user_terminal() {
+  [[ -n "${SSH_TTY:-}" ]] && return 0
+  case "${TERM_PROGRAM:-}" in
+    Apple_Terminal|Ghostty|Hyper|WarpTerminal|WezTerm|iTerm.app|kitty|rio) return 0 ;;
   esac
   return 1
 }
@@ -13,11 +21,12 @@ _zsh_autostarts_tmux() {
   command -v tmux >/dev/null || return 1
   [[ -z "${TMUX:-}" ]] || return 1
   # No interactive-TTY gate: Kitty and other terminals may not report -t 1
-  # ZSH_TMUX_AUTOSTART_SCOPE: everywhere (default) | wezterm-only | agents-only
-  case "${ZSH_TMUX_AUTOSTART_SCOPE:-everywhere}" in
+  # ZSH_TMUX_AUTOSTART_SCOPE: terminals-only (default) | wezterm-only | agents-only | everywhere
+  case "${ZSH_TMUX_AUTOSTART_SCOPE:-terminals-only}" in
     wezterm-only) [[ "${TERM_PROGRAM:-}" == "WezTerm" ]]; return $? ;;
     agents-only)  _zsh_is_tooling_terminal; return $? ;;
-    everywhere|*) return 0 ;;
+    everywhere)   _zsh_is_user_terminal || _zsh_is_tooling_terminal; return $? ;;
+    terminals-only|*) _zsh_is_user_terminal || _zsh_is_tooling_terminal; return $? ;;
   esac
 }
 
