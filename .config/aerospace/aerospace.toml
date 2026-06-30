@@ -132,10 +132,7 @@ shift-p = [
 alt-p = 'move-workspace-to-monitor --wrap-around next'
 
 ctrl-p = [
-  'move-node-to-monitor --wrap-around next',
-  'focus-monitor next --wrap-around' ,
-' focus --boundaries all-monitors-outer-frame --boundaries-action stop left ',
-  'move-node-to-monitor --wrap-around next'
+  'exec-and-forget ~/.config/aerospace/rotate-visible-workspaces-clockwise.sh'
 ]
 
 1 = 'workspace --auto-back-and-forth 􁹩'  # Notes
@@ -294,5 +291,3 @@ run = ['move-node-to-workspace 􀪏']
 run = [
   'layout floating',
 ]
-
-
