@@ -22,3 +22,6 @@ typescript
 
 # Secrets (use ~/.secrets.zsh locally)
 .secrets.zsh
+
+# Built borders watcher binary
+.config/borders/borders-appearance-watcher

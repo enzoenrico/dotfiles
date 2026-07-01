@@ -1,12 +1,12 @@
-#!/usr/bin/env swift
-
 import AppKit
 import Foundation
 
 func applyBorders() {
+    let home = FileManager.default.homeDirectoryForCurrentUser.path
+    let bordersrc = "\(home)/.config/borders/bordersrc"
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/bin/bash")
-    process.arguments = ["-lc", "~/.config/borders/bordersrc"]
+    process.arguments = [bordersrc]
 
     do {
         try process.run()
@@ -17,6 +17,13 @@ func applyBorders() {
 }
 
 applyBorders()
+
+// Retry after login while the window server and borders are coming up.
+for delay in [3.0, 10.0] {
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+        applyBorders()
+    }
+}
 
 let center = DistributedNotificationCenter.default()
 let observer = center.addObserver(

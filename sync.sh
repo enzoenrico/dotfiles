@@ -23,9 +23,10 @@ RSYNC_EXCLUDES=(
 rsync -av --delete "${RSYNC_EXCLUDES[@]}" \
   "$HOME/.config/" "$DOTFILES/.config/"
 
-if [[ -f "$HOME/Library/LaunchAgents/com.mitel.borders-appearance-watcher.plist" ]]; then
-  cp "$HOME/Library/LaunchAgents/com.mitel.borders-appearance-watcher.plist" \
-    "$DOTFILES/.config/borders/com.mitel.borders-appearance-watcher.plist"
+if [[ -f "$HOME/Library/LaunchAgents/com.kyou.borders-appearance-watcher.plist" ]]; then
+  sed "s|$HOME|__HOME__|g" \
+    "$HOME/Library/LaunchAgents/com.kyou.borders-appearance-watcher.plist" \
+    > "$DOTFILES/.config/borders/com.kyou.borders-appearance-watcher.plist"
 fi
 
 # Kitty terminal (~/.config/kitty)
