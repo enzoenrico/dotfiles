@@ -11,9 +11,8 @@ _zsh_is_tooling_terminal() {
 
 _zsh_is_user_terminal() {
   [[ -n "${SSH_TTY:-}" ]] && return 0
-  [[ -n "${KITTY_WINDOW_ID:-}" ]] && return 0
   case "${TERM_PROGRAM:-}" in
-    Apple_Terminal|Ghostty|Hyper|WarpTerminal|WezTerm|iTerm.app|kitty|rio|Alacritty|vscode|cursor|Cursor) return 0 ;;
+    Apple_Terminal|Ghostty|Hyper|WarpTerminal|WezTerm|iTerm.app|kitty|rio) return 0 ;;
   esac
   return 1
 }
@@ -21,8 +20,6 @@ _zsh_is_user_terminal() {
 _zsh_autostarts_tmux() {
   command -v tmux >/dev/null || return 1
   [[ -z "${TMUX:-}" ]] || return 1
-  # Skip zsh -c wrappers (e.g. kitty's outer `zsh -lic 'while …'`), not real terminal shells.
-  [[ -z "${ZSH_EXECUTION_STRING:-}" ]] || return 1
   # No interactive-TTY gate: Kitty and other terminals may not report -t 1
   # ZSH_TMUX_AUTOSTART_SCOPE: terminals-only (default) | wezterm-only | agents-only | everywhere
   case "${ZSH_TMUX_AUTOSTART_SCOPE:-terminals-only}" in

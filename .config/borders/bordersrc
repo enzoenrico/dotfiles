@@ -1,6 +1,14 @@
-#!/usr/bin/env bash
-
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+# #!/bin/bash
+#
+# options=(
+#   style=round
+#   width=8.0
+#   hidpi=on
+#   active_color='glow(0xffffffff)'
+#   inactive_color='glow(0x750014dc)'
+# )
+#
+# borders "${options[@]}"
 
 if defaults read -g AppleInterfaceStyle >/dev/null 2>&1; then
 	active_color='glow(0xff5fd7ff)'
@@ -18,4 +26,4 @@ options=(
 	inactive_color="$inactive_color"
 )
 
-/opt/homebrew/bin/borders "${options[@]}"
+borders "${options[@]}"

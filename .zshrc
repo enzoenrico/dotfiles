@@ -1,6 +1,4 @@
 export PATH="$HOME/.local/bin:$PATH"
-# Homebrew before tmux autostart (non-login shells skip .zprofile)
-[[ -x /opt/homebrew/bin/brew ]] && export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 _zsh_config="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
 [[ -f "$_zsh_config/00-tty.zsh" ]] && source "$_zsh_config/00-tty.zsh"
 [[ -f "$_zsh_config/05-kanata.zsh" ]] && source "$_zsh_config/05-kanata.zsh"
