@@ -27,4 +27,10 @@ M.base46 = {
   theme_toggle = { M.themes.dark, M.themes.light },
 }
 
+M.ui = {
+  tabufline = {
+    lazyload = false,
+  },
+}
+
 return M
