@@ -125,14 +125,26 @@ local function launch_ai_float(id, display_name, command_builder)
   restart_float(id, display_name, cmd, cwd)
 end
 
+local function toggle_or_launch(id, display_name, command_builder)
+  local terms = require "toggleterm.terminal"
+  local term = terms.get(id, true)
+
+  if term and term.job_id and term.job_id > 0 then
+    require("toggleterm").toggle(id, nil, nil, "float")
+    return
+  end
+
+  launch_ai_float(id, display_name, command_builder)
+end
+
 function M.open_opencode_with_current_file()
-  launch_ai_float(M.opencode_id, "opencode", function(relative)
+  toggle_or_launch(M.opencode_id, "opencode", function(relative)
     return table.concat({ "opencode", "--prompt", shellescape("@" .. relative) }, " ")
   end)
 end
 
 function M.open_agent_with_current_file()
-  launch_ai_float(M.agent_id, "agent", function(relative)
+  toggle_or_launch(M.agent_id, "agent", function(relative)
     return table.concat({ "agent", shellescape("@" .. relative) }, " ")
   end)
 end

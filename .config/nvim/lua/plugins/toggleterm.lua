@@ -36,8 +36,8 @@ return {
       { "<M-J>", float, mode = { "n", "t" }, desc = "Toggle floating terminal (Shift+Alt+j parity)" },
       { "<leader>tb", toggle("horizontal", 2), mode = { "n", "t" }, desc = "Toggle bottom terminal" },
       { "<leader>tV", toggle("vertical", 3), mode = { "n", "t" }, desc = "Toggle vertical terminal" },
-      { "<leader>co", opencode_float, mode = "n", desc = "Open opencode for current file" },
-      { "<leader>ca", agent_float, mode = "n", desc = "Open agent for current file" },
+      { "<leader>co", opencode_float, mode = { "n", "t" }, desc = "Toggle opencode for current file" },
+      { "<leader>ca", agent_float, mode = { "n", "t" }, desc = "Toggle agent for current file" },
     },
     config = function()
       require("configs.toggleterm").setup()
