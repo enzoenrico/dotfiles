@@ -4,6 +4,17 @@
 ;; Home-row behavior follows:
 ;; https://github.com/KensukeM39/kanata-homerow-hyper-keymap/blob/main/kanata-mac-mac-US.kbd
 ;; Key idea: tap-hold-release-keys + a temporary nomods layer for fast rolls.
+;;
+;; lsft nav design:
+;;   lsft is mapped to (multi lsft (layer-while-held nav)).
+;;   On the nav layer, h/j/k/l/; use tap-hold-TAP-keys so hold fires on timeout
+;;   only — never early from a foreign-key release.  This lets lsft being
+;;   released mid-hold not corrupt j/k/l resolution (the tap-hold-release-keys
+;;   variant would see lsft-release as an early-hold trigger, breaking everything).
+;;
+;;   nav layer behaviour:
+;;     tap  → arrow             (lsft is still active → Shift+Arrow = text selection)
+;;     hold → modifier          (lsft is still active → Shift+Mod)
 
 (defcfg
   process-unmapped-keys yes
@@ -49,28 +60,57 @@
     (on-idle-fakekey to-base tap 20)
   )
 
-  a-hr (tap-hold-release-keys $tap-time $hold-time (multi a @tap) rsft $left-hand-keys)
-  s-hr (tap-hold-release-keys $tap-time $hold-time (multi s @tap) lctl $left-hand-keys)
-  d-hr (tap-hold-release-keys $tap-time $hold-time (multi d @tap) lalt $left-hand-keys)
-  f-hr (tap-hold-release-keys $tap-time $hold-time (multi f @tap) lmet $left-hand-keys)
-  j-hr (tap-hold-release-keys $tap-time $hold-time (multi j @tap) rmet $right-hand-keys)
-  k-hr (tap-hold-release-keys $tap-time $hold-time (multi k @tap) ralt $right-hand-keys)
-  l-hr (tap-hold-release-keys $tap-time $hold-time (multi l @tap) rctl $right-hand-keys)
+  ;; Left-hand home row mods (unchanged)
+  a-hr  (tap-hold-release-keys $tap-time $hold-time (multi a @tap) rsft $left-hand-keys)
+  s-hr  (tap-hold-release-keys $tap-time $hold-time (multi s @tap) lctl $left-hand-keys)
+  d-hr  (tap-hold-release-keys $tap-time $hold-time (multi d @tap) lalt $left-hand-keys)
+  f-hr  (tap-hold-release-keys $tap-time $hold-time (multi f @tap) lmet $left-hand-keys)
+
+  ;; Right-hand home row mods — base layer (no lsft involved)
+  j-hr  (tap-hold-release-keys $tap-time $hold-time (multi j @tap) rmet $right-hand-keys)
+  k-hr  (tap-hold-release-keys $tap-time $hold-time (multi k @tap) ralt $right-hand-keys)
+  l-hr  (tap-hold-release-keys $tap-time $hold-time (multi l @tap) rctl $right-hand-keys)
   sc-hr (tap-hold-release-keys $tap-time $hold-time (multi ; @tap) rsft $right-hand-keys)
 
-  h-nav (fork h (unshift left) (lsft))
-  j-nav (fork @j-hr (unshift down) (lsft))
-  k-nav (fork @k-hr (unshift up) (lsft))
-  l-nav (fork @l-hr (unshift right) (lsft))
+  ;; lsft: emit lsft modifier AND activate the nav layer while held.
+  ;; This is the core of the QMK-like design: the modifier and the nav layer
+  ;; are activated together, so there is no ambiguity about lsft state inside
+  ;; any tap-hold action running on the nav layer.
+  lsft-nav (multi lsft (layer-while-held nav))
+
+  ;; Nav-layer tap-hold keys.
+  ;; tap-hold-TAP-keys is used instead of tap-hold-release-keys so that hold
+  ;; activates on timeout ONLY.  With tap-hold-release-keys, releasing lsft
+  ;; while j is held would count as "another key released" and fire hold early
+  ;; (with lsft already gone → bare rmet, not Shift+RMeta).
+  ;;
+  ;; tap  → (unshift <arrow>)  strips the active lsft, pure cursor movement
+  ;; hold → modifier            lsft is still held → Shift+Modifier
+  j-on-nav  (tap-hold-tap-keys $tap-time $hold-time down  rmet $right-hand-keys)
+  k-on-nav  (tap-hold-tap-keys $tap-time $hold-time up    ralt $right-hand-keys)
+  l-on-nav  (tap-hold-tap-keys $tap-time $hold-time right rctl $right-hand-keys)
+  sc-on-nav (tap-hold-tap-keys $tap-time $hold-time (unshift ;) rsft $right-hand-keys)
 )
 
 (deflayer base
   caps brdn brup mctl sls  dtn  dnd  prev pp   next mute vold volu
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  esc  @a-hr @s-hr @d-hr @f-hr _    @h-nav @j-nav @k-nav @l-nav @sc-hr _    _
-  _    _    _    _    _    _    _    _    _    _    _    _
+  esc  @a-hr @s-hr @d-hr @f-hr _    h    @j-hr @k-hr @l-hr @sc-hr _    _
+  @lsft-nav _    _    _    _    _    _    _    _    _    _    rsft
   f18  _    _    _              _              _    _
+)
+
+;; Nav layer — active while lsft is physically held.
+;; Left-hand home row mods remain available so combos like
+;; Shift+Opt+Arrow (lsft + hold-d + tap-l) still work.
+(deflayer nav
+  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _    _    _    _    _    _    _    _    _    _    _
+  _    @a-hr @s-hr @d-hr @f-hr _    left @j-on-nav @k-on-nav @l-on-nav @sc-on-nav _    _
+  _    _    _    _    _    _    _    _    _    _    _    _
+  _    _    _    _              _              _    _
 )
 
 (deflayer nomods
