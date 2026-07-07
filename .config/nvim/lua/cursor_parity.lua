@@ -145,11 +145,26 @@ vim.api.nvim_create_user_command("SideGo", goto_side, {
 })
 
 -- Shift+Option+F slot (tmux): format when Conform is available
+vim.api.nvim_create_user_command("Format", function(args)
+  require("conform").format { async = true, lsp_fallback = true, range = args.range > 0 and {
+    start = { args.line1, 0 },
+    ["end"] = { args.line2, 0 },
+  } or nil }
+end, { range = true })
+
 local function format_doc()
   require("conform").format { async = true, lsp_fallback = true }
 end
+local function format_range()
+  require("conform").format { async = true, lsp_fallback = true, range = {
+    start = vim.api.nvim_buf_get_mark(0, "<"),
+    ["end"] = vim.api.nvim_buf_get_mark(0, ">"),
+  } }
+end
 map("n", "<M-F>", format_doc, { desc = "Format document (Shift+Opt+F slot)" })
 map("n", "<M-S-f>", format_doc, { desc = "Format document (Shift+Opt+f)" })
+map("v", "<M-F>", format_range, { desc = "Format selection (Shift+Opt+F slot)" })
+map("v", "<M-S-f>", format_range, { desc = "Format selection (Shift+Opt+f)" })
 
 -- Swift / xcodebuild (macOS): <leader>s* — lazy-loads with xcodebuild.nvim
 if vim.fn.has "macunix" == 1 then
