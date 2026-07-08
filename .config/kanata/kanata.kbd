@@ -87,10 +87,10 @@
   ;;   rsft held (homerow mod `a`)  →  raw arrow  →  lsft+rsft+arrow = shift+arrow (select)
   ;;   rsft not held                →  (unshift)  →  strips lsft = bare arrow (move)
   ;; No tap-hold: holding the key auto-repeats via OS key repeat.
-  h-on-nav  (fork left  (unshift left)  (rsft))
-  j-on-nav  (fork down  (unshift down)  (rsft))
-  k-on-nav  (fork up    (unshift up)    (rsft))
-  l-on-nav  (fork right (unshift right) (rsft))
+  h-on-nav  (fork (unshift left)  left  (rsft))
+  j-on-nav  (fork (unshift down)  down  (rsft))
+  k-on-nav  (fork (unshift up)    up    (rsft))
+  l-on-nav  (fork (unshift right) right (rsft))
   ;; Strip shift from ; so lsft+; stays ; and doesn't become :
   sc-on-nav (unshift ;)
 )
