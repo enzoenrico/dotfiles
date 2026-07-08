@@ -6,15 +6,22 @@
 ;; Key idea: tap-hold-release-keys + a temporary nomods layer for fast rolls.
 ;;
 ;; lsft nav design:
-;;   lsft is mapped to (multi lsft (layer-while-held nav)).
-;;   On the nav layer, h/j/k/l/; use tap-hold-TAP-keys so hold fires on timeout
-;;   only — never early from a foreign-key release.  This lets lsft being
-;;   released mid-hold not corrupt j/k/l resolution (the tap-hold-release-keys
-;;   variant would see lsft-release as an early-hold trigger, breaking everything).
+;;   lsft emits lsft AND activates the nav layer while held.
+;;   This means lsft is regular shift for every key NOT remapped on the nav layer.
 ;;
-;;   nav layer behaviour:
-;;     tap  → arrow             (lsft is still active → Shift+Arrow = text selection)
-;;     hold → modifier          (lsft is still active → Shift+Mod)
+;;   On the nav layer, h/j/k/l use fork to separate movement from selection:
+;;
+;;     rsft NOT held  →  (unshift arrow)  strips lsft  →  bare arrow  (cursor movement)
+;;     rsft held      →  raw arrow        lsft+rsft active  →  shift+arrow  (text selection)
+;;
+;;   rsft comes from the `a` homerow mod (hold=rsft) or the `;` homerow mod.
+;;   Examples:
+;;     lsft + h              →  bare left      (move)
+;;     a (hold) + lsft + h   →  shift+left     (select)
+;;     lsft + q              →  Q              (regular shift, unaffected)
+;;
+;;   Holding h/j/k/l on the nav layer fires auto-repeating arrows via OS key repeat
+;;   (no tap-hold, so there is no hold override).
 
 (defcfg
   process-unmapped-keys yes
@@ -60,36 +67,32 @@
     (on-idle-fakekey to-base tap 20)
   )
 
-  ;; Left-hand home row mods (unchanged)
+  ;; Left-hand home row mods
   a-hr  (tap-hold-release-keys $tap-time $hold-time (multi a @tap) rsft $left-hand-keys)
   s-hr  (tap-hold-release-keys $tap-time $hold-time (multi s @tap) lctl $left-hand-keys)
   d-hr  (tap-hold-release-keys $tap-time $hold-time (multi d @tap) lalt $left-hand-keys)
   f-hr  (tap-hold-release-keys $tap-time $hold-time (multi f @tap) lmet $left-hand-keys)
 
-  ;; Right-hand home row mods — base layer (no lsft involved)
+  ;; Right-hand home row mods — base layer
   j-hr  (tap-hold-release-keys $tap-time $hold-time (multi j @tap) rmet $right-hand-keys)
   k-hr  (tap-hold-release-keys $tap-time $hold-time (multi k @tap) ralt $right-hand-keys)
   l-hr  (tap-hold-release-keys $tap-time $hold-time (multi l @tap) rctl $right-hand-keys)
   sc-hr (tap-hold-release-keys $tap-time $hold-time (multi ; @tap) rsft $right-hand-keys)
 
-  ;; lsft: emit lsft modifier AND activate the nav layer while held.
-  ;; This is the core of the QMK-like design: the modifier and the nav layer
-  ;; are activated together, so there is no ambiguity about lsft state inside
-  ;; any tap-hold action running on the nav layer.
+  ;; lsft: emit lsft AND activate nav layer.
+  ;; Acts as regular shift for all keys not remapped on the nav layer.
   lsft-nav (multi lsft (layer-while-held nav))
 
-  ;; Nav-layer tap-hold keys.
-  ;; tap-hold-TAP-keys is used instead of tap-hold-release-keys so that hold
-  ;; activates on timeout ONLY.  With tap-hold-release-keys, releasing lsft
-  ;; while j is held would count as "another key released" and fire hold early
-  ;; (with lsft already gone → bare rmet, not Shift+RMeta).
-  ;;
-  ;; tap  → (unshift <arrow>)  strips the active lsft, pure cursor movement
-  ;; hold → modifier            lsft is still held → Shift+Modifier
-  j-on-nav  (tap-hold-tap-keys $tap-time $hold-time down  rmet $right-hand-keys)
-  k-on-nav  (tap-hold-tap-keys $tap-time $hold-time up    ralt $right-hand-keys)
-  l-on-nav  (tap-hold-tap-keys $tap-time $hold-time right rctl $right-hand-keys)
-  sc-on-nav (tap-hold-tap-keys $tap-time $hold-time (unshift ;) rsft $right-hand-keys)
+  ;; Nav-layer arrow keys — fork on rsft:
+  ;;   rsft held (homerow mod `a`)  →  raw arrow  →  lsft+rsft+arrow = shift+arrow (select)
+  ;;   rsft not held                →  (unshift)  →  strips lsft = bare arrow (move)
+  ;; No tap-hold: holding the key auto-repeats via OS key repeat.
+  h-on-nav  (fork left  (unshift left)  (rsft))
+  j-on-nav  (fork down  (unshift down)  (rsft))
+  k-on-nav  (fork up    (unshift up)    (rsft))
+  l-on-nav  (fork right (unshift right) (rsft))
+  ;; Strip shift from ; so lsft+; stays ; and doesn't become :
+  sc-on-nav (unshift ;)
 )
 
 (deflayer base
@@ -102,13 +105,15 @@
 )
 
 ;; Nav layer — active while lsft is physically held.
-;; Left-hand home row mods remain available so combos like
-;; Shift+Opt+Arrow (lsft + hold-d + tap-l) still work.
+;; Left-hand homerow mods available for modifier+arrow combos:
+;;   d (hold=lalt) + lsft + l  →  lalt+right = word jump
+;;   a (hold=rsft) + lsft + l  →  shift+right = select right
+;;   a + d + lsft + l          →  shift+option+right = select word
 (deflayer nav
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    @a-hr @s-hr @d-hr @f-hr _    left @j-on-nav @k-on-nav @l-on-nav @sc-on-nav _    _
+  _    @a-hr @s-hr @d-hr @f-hr _    @h-on-nav @j-on-nav @k-on-nav @l-on-nav @sc-on-nav _    _
   _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _              _              _    _
 )
