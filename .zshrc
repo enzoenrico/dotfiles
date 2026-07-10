@@ -1,4 +1,5 @@
-export PATH="$HOME/.local/bin:$PATH"
+# Homebrew before tmux autostart (Apple Silicon and/or Intel prefixes)
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 _zsh_config="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
 [[ -f "$_zsh_config/00-tty.zsh" ]] && source "$_zsh_config/00-tty.zsh"
 [[ -f "$_zsh_config/05-kanata.zsh" ]] && source "$_zsh_config/05-kanata.zsh"
