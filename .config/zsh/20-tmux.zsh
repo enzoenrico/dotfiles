@@ -11,8 +11,17 @@ _zsh_is_tooling_terminal() {
 
 _zsh_is_user_terminal() {
   [[ -n "${SSH_TTY:-}" ]] && return 0
+  # Kitty 0.40+ no longer sets TERM_PROGRAM; detect via KITTY_* / TERM instead.
+  [[ -n "${KITTY_PID:-}${KITTY_WINDOW_ID:-}" ]] && return 0
+  [[ -n "${WEZTERM_PANE:-}${WEZTERM_UNIX_SOCKET:-}" ]] && return 0
+  [[ -n "${GHOSTTY_RESOURCES_DIR:-}" ]] && return 0
   case "${TERM_PROGRAM:-}" in
-    Apple_Terminal|Ghostty|Hyper|WarpTerminal|WezTerm|iTerm.app|kitty|rio) return 0 ;;
+    Apple_Terminal|Ghostty|Hyper|WarpTerminal|WezTerm|iTerm.app|kitty|rio|vscode|cursor|Cursor)
+      return 0
+      ;;
+  esac
+  case "${TERM:-}" in
+    xterm-kitty|xterm-ghostty) return 0 ;;
   esac
   return 1
 }
