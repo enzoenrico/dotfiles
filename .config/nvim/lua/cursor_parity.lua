@@ -27,8 +27,18 @@ map("n", "<C-S-x>", "<C-w>x", { desc = "Swap window with next", silent = true })
 -- Sidebar: Alt+Cmd+s → NvimTreeToggle (+ NvChad fallbacks stay on <C-n> / <leader>e)
 map("n", "<M-D-s>", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle sidebar (Cursor Alt+Cmd+s)" })
 
+-- Find UI: same Snacks pickers as the dashboard ("home") Find File / Find Text
+map("n", "<leader>ff", function()
+  Snacks.dashboard.pick "files"
+end, { desc = "Find files" })
+map("n", "<leader>fw", function()
+  Snacks.dashboard.pick "live_grep"
+end, { desc = "Find text" })
+
 -- Command palette / quick open (Cursor Cmd+Shift+P / Cmd+P)
-map("n", "<D-p>", "<cmd>Telescope find_files<CR>", { desc = "Quick open (Cursor Cmd+P)" })
+map("n", "<D-p>", function()
+  Snacks.dashboard.pick "files"
+end, { desc = "Quick open (Cursor Cmd+P)" })
 map("n", "<S-D-p>", "<cmd>Telescope commands<CR>", { desc = "Command palette (Cursor Cmd+Shift+P)" })
 
 -- Command palette (Space ;)

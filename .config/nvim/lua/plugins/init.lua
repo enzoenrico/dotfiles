@@ -83,11 +83,20 @@ return {
     end,
   },
 
-  -- Telescope: Ctrl+j/k for picker nav (Cursor quick-input parity)
+  -- Native fzf sorter (Lua sorter is the main typing lag in large trees)
+  {
+    "nvim-telescope/telescope-fzf-native.nvim",
+    build = "make",
+  },
+
+  -- Telescope: fast find + Ctrl+j/k for picker nav (Cursor quick-input parity)
   {
     "nvim-telescope/telescope.nvim",
+    dependencies = { "nvim-telescope/telescope-fzf-native.nvim" },
     opts = function(_, opts)
       local actions = require "telescope.actions"
+      local have_fd = vim.fn.executable "fd" == 1
+
       opts.defaults = vim.tbl_deep_extend("force", opts.defaults or {}, {
         mappings = {
           i = {
@@ -95,12 +104,82 @@ return {
             ["<C-k>"] = actions.move_selection_previous,
           },
         },
+        -- Skip huge / generated trees that make fuzzy match crawl
+        file_ignore_patterns = {
+          "%.git/",
+          "node_modules/",
+          "%.next/",
+          "dist/",
+          "build/",
+          "DerivedData/",
+          "%.xcodeproj/",
+          "%.xcworkspace/",
+          "Pods/",
+          "%.swiftpm/",
+          "vendor/",
+          "%.cache/",
+          "target/",
+          "%.venv/",
+          "__pycache__/",
+        },
+        vimgrep_arguments = {
+          "rg",
+          "--color=never",
+          "--no-heading",
+          "--with-filename",
+          "--line-number",
+          "--column",
+          "--smart-case",
+          "--hidden",
+          "--glob=!.git/*",
+        },
+        preview = {
+          filesize_limit = 0.5, -- MB; skip huge files in preview
+          timeout = 100,
+        },
+        path_display = { "truncate" },
       })
+
       opts.pickers = opts.pickers or {}
+      -- Prefer fd (Telescope defaults to rg --files even when fd exists).
+      -- Keep hidden dotfiles, but never walk .git.
       opts.pickers.find_files = vim.tbl_deep_extend("force", opts.pickers.find_files or {}, {
         hidden = true,
+        find_command = have_fd and {
+          "fd",
+          "--type",
+          "f",
+          "--color",
+          "never",
+          "--exclude",
+          ".git",
+        } or {
+          "rg",
+          "--files",
+          "--color",
+          "never",
+          "--glob",
+          "!.git/*",
+        },
       })
+
+      opts.extensions = vim.tbl_deep_extend("force", opts.extensions or {}, {
+        fzf = {
+          fuzzy = true,
+          override_generic_sorter = true,
+          override_file_sorter = true,
+          case_mode = "smart_case",
+        },
+      })
+
       return opts
+    end,
+    config = function(_, opts)
+      require("telescope").setup(opts)
+      pcall(require("telescope").load_extension, "fzf")
+      for _, ext in ipairs(opts.extensions_list or {}) do
+        pcall(require("telescope").load_extension, ext)
+      end
     end,
   },
 
@@ -191,8 +270,15 @@ return {
     event = "VeryLazy",
     opts = {
       max_length = 900,
-      trailing_stiffness = 0.35,
-      trailing_exponent = 2.2,
+      -- Smoother, less jumpy animation
+      time_interval = 7, -- higher framerate (~140fps instead of ~60)
+      stiffness = 0.4, -- slower head (default 0.6 jumps most of the way in one frame)
+      trailing_stiffness = 0.12, -- tail catches up slowly = long smear
+      trailing_exponent = 2, -- taper the body toward the tail
+      anticipation = 0.1, -- less initial backward kick
+      damping = 0.9, -- fewer overshoot wobbles
+      stiffness_insert_mode = 0.4,
+      trailing_stiffness_insert_mode = 0.4,
     },
   },
 

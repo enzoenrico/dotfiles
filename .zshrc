@@ -39,6 +39,13 @@ alias sail="./vendor/bin/sail"
 alias ff='nvim $(fzf --preview="bat --color=always {}")'
 alias venv="python3 -m venv .venv && source ./.venv/bin/activate"
 alias lg="lazygit"
+
+# Fuzzy git switch: `gswf hyd-` or `gswf 7579`
+gswf() {
+  local branch
+  branch=$(git branch --format='%(refname:short)' | fzf --query="${1:-}" -i)
+  [[ -n $branch ]] && git switch "$branch"
+}
 alias ndiff="nvim -c :DiffviewOpen ."
 alias oc="opencode"
 

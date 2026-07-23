@@ -217,7 +217,7 @@ local function collect_lsp(sym, timeout_ms)
   local out = {}
   local seen = {}
 
-  if client.supports_method "textDocument/implementation" then
+  if client:supports_method "textDocument/implementation" then
     add_lsp_locations(
       out,
       seen,
@@ -227,7 +227,7 @@ local function collect_lsp(sym, timeout_ms)
     )
   end
 
-  if client.supports_method "textDocument/definition" then
+  if client:supports_method "textDocument/definition" then
     add_lsp_locations(
       out,
       seen,
@@ -237,7 +237,7 @@ local function collect_lsp(sym, timeout_ms)
     )
   end
 
-  if client.supports_method "textDocument/documentSymbol" then
+  if client:supports_method "textDocument/documentSymbol" then
     local syms = sync_results(buf, "textDocument/documentSymbol", doc_params, timeout_ms)
     local uri = vim.uri_from_bufnr(buf)
     local function walk_symbol_list(slist)
@@ -257,7 +257,7 @@ local function collect_lsp(sym, timeout_ms)
     walk_symbol_list(syms)
   end
 
-  if client.supports_method "workspace/symbol" then
+  if client:supports_method "workspace/symbol" then
     local syms = sync_results(buf, "workspace/symbol", { query = sym }, timeout_ms)
     for _, s in ipairs(syms) do
       if s.name == sym and s.location then
