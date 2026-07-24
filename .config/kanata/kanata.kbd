@@ -9,12 +9,15 @@
 ;;   lsft emits lsft AND activates the nav layer while held.
 ;;   This means lsft is regular shift for every key NOT remapped on the nav layer.
 ;;
-;;   On the nav layer, h/j/k/l use fork to separate movement from selection:
+;;   On the nav layer, h/j/k/l use switch to separate movement from selection:
 ;;
-;;     rsft NOT held  →  (unshift arrow)  strips lsft  →  bare arrow  (cursor movement)
-;;     rsft held      →  raw arrow        lsft+rsft active  →  shift+arrow  (text selection)
+;;     no select mod   →  (unshift arrow)  strips lsft  →  bare arrow  (cursor movement)
+;;     select mod held →  raw arrow        lsft still active  →  shift+arrow  (text selection)
 ;;
-;;   rsft comes from the `a` homerow mod (hold=rsft) or the `;` homerow mod.
+;;   Select mod = outputted rsft OR physical `a` held (homerow shift).
+;;   Checking (input real a) matters because tap-hold may still be pending when the
+;;   arrow is pressed; fork-on-rsft alone would miss that and always unshift.
+;;   Nav-layer left homerow mods use tap-hold-press so hold wins as soon as hjkl fires.
 ;;   Examples:
 ;;     lsft + h              →  bare left      (move)
 ;;     a (hold) + lsft + h   →  shift+left     (select)
@@ -83,14 +86,32 @@
   ;; Acts as regular shift for all keys not remapped on the nav layer.
   lsft-nav (multi lsft (layer-while-held nav))
 
-  ;; Nav-layer arrow keys — fork on rsft:
-  ;;   rsft held (homerow mod `a`)  →  raw arrow  →  lsft+rsft+arrow = shift+arrow (select)
-  ;;   rsft not held                →  (unshift)  →  strips lsft = bare arrow (move)
+  ;; Nav-layer left HRMs: tap-hold-press so mod activates on arrow press (not after
+  ;; release/timeout). Typing rolls are not a concern while lsft-nav is held.
+  a-nav (tap-hold-press $tap-time $hold-time (multi a @tap) rsft)
+  s-nav (tap-hold-press $tap-time $hold-time (multi s @tap) lctl)
+  d-nav (tap-hold-press $tap-time $hold-time (multi d @tap) lalt)
+  f-nav (tap-hold-press $tap-time $hold-time (multi f @tap) lmet)
+
+  ;; Nav-layer arrows — select when rsft is outputted OR physical `a` is down
+  ;; (covers pending base-layer @a-hr that has not resolved to rsft yet).
   ;; No tap-hold: holding the key auto-repeats via OS key repeat.
-  h-on-nav  (fork (unshift left)  left  (rsft))
-  j-on-nav  (fork (unshift down)  down  (rsft))
-  k-on-nav  (fork (unshift up)    up    (rsft))
-  l-on-nav  (fork (unshift right) right (rsft))
+  h-on-nav (switch
+    ((or rsft (input real a))) left break
+    () (unshift left) break
+  )
+  j-on-nav (switch
+    ((or rsft (input real a))) down break
+    () (unshift down) break
+  )
+  k-on-nav (switch
+    ((or rsft (input real a))) up break
+    () (unshift up) break
+  )
+  l-on-nav (switch
+    ((or rsft (input real a))) right break
+    () (unshift right) break
+  )
   ;; Strip shift from ; so lsft+; stays ; and doesn't become :
   sc-on-nav (unshift ;)
 )
@@ -113,7 +134,7 @@
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    @a-hr @s-hr @d-hr @f-hr _    @h-on-nav @j-on-nav @k-on-nav @l-on-nav @sc-on-nav _    _
+  _    @a-nav @s-nav @d-nav @f-nav _    @h-on-nav @j-on-nav @k-on-nav @l-on-nav @sc-on-nav _    _
   _    _    _    _    _    _    _    _    _    _    _    _
   _    _    _    _              _              _    _
 )
