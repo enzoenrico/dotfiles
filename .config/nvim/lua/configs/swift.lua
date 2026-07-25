@@ -42,10 +42,27 @@ function M.sync_syntax_fallback(buf)
 end
 
 function M.setup_lsp()
+  -- Merge nvim-lspconfig defaults first. A bare vim.lsp.config("sourcekit", { on_init })
+  -- can leave cmd/filetypes/root_dir nil, so vim.lsp.enable rejects the server.
+  local defaults = {}
+  local path = vim.api.nvim_get_runtime_file("lsp/sourcekit.lua", false)[1]
+  if path then
+    local ok, cfg = pcall(dofile, path)
+    if ok and type(cfg) == "table" then
+      defaults = cfg
+    end
+  end
+  if not defaults.cmd then
+    defaults.cmd = { "sourcekit-lsp" }
+  end
+
   -- NvChad's global on_init strips semantic tokens; SourceKit's survive incomplete Swift better.
-  vim.lsp.config("sourcekit", {
-    on_init = function() end,
-  })
+  vim.lsp.config(
+    "sourcekit",
+    vim.tbl_deep_extend("force", defaults, {
+      on_init = function() end,
+    })
+  )
 
   vim.api.nvim_create_autocmd("LspAttach", {
     group = aug,
