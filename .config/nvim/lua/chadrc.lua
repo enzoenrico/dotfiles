@@ -28,8 +28,11 @@ M.base46 = {
 }
 
 M.ui = {
+  statusline = {
+    enabled = false,
+  },
   tabufline = {
-    lazyload = false,
+    enabled = false,
   },
 }
 

@@ -24,8 +24,10 @@ map("n", "<C-S-x>", "<C-w>x", { desc = "Swap window with next", silent = true })
 
 -- Floating terminal: <C-`>, <M-J>, <leader>tt (toggleterm.nvim; press again to hide, shell stays alive)
 
--- Sidebar: Alt+Cmd+s → NvimTreeToggle (+ NvChad fallbacks stay on <C-n> / <leader>e)
-map("n", "<M-D-s>", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle sidebar (Cursor Alt+Cmd+s)" })
+-- File browser: preserve the Cursor sidebar shortcut with Telescope.
+map("n", "<M-D-s>", function()
+  require("configs.file_browser").open()
+end, { desc = "File browser (Cursor Alt+Cmd+s)" })
 
 -- Find UI: same Snacks pickers as the dashboard ("home") Find File / Find Text
 map("n", "<leader>ff", function()
@@ -83,7 +85,7 @@ map("n", "<leader>p", "<cmd>Telescope diagnostics<CR>", { desc = "Problems / dia
 
 -- LSP: Cursor-style chords + keep gd/gD/gr from NvChad/LSP
 map("n", "gr", function()
-  require("custom.lsp_renamer")()
+  require "custom.lsp_renamer"()
 end, { desc = "Rename (Cursor gr)" })
 
 map("n", "gi", function()
@@ -156,20 +158,28 @@ vim.api.nvim_create_user_command("SideGo", goto_side, {
 
 -- Shift+Option+F slot (tmux): format when Conform is available
 vim.api.nvim_create_user_command("Format", function(args)
-  require("conform").format { async = true, lsp_fallback = true, range = args.range > 0 and {
-    start = { args.line1, 0 },
-    ["end"] = { args.line2, 0 },
-  } or nil }
+  require("conform").format {
+    async = true,
+    lsp_fallback = true,
+    range = args.range > 0 and {
+      start = { args.line1, 0 },
+      ["end"] = { args.line2, 0 },
+    } or nil,
+  }
 end, { range = true })
 
 local function format_doc()
   require("conform").format { async = true, lsp_fallback = true }
 end
 local function format_range()
-  require("conform").format { async = true, lsp_fallback = true, range = {
-    start = vim.api.nvim_buf_get_mark(0, "<"),
-    ["end"] = vim.api.nvim_buf_get_mark(0, ">"),
-  } }
+  require("conform").format {
+    async = true,
+    lsp_fallback = true,
+    range = {
+      start = vim.api.nvim_buf_get_mark(0, "<"),
+      ["end"] = vim.api.nvim_buf_get_mark(0, ">"),
+    },
+  }
 end
 map("n", "<M-F>", format_doc, { desc = "Format document (Shift+Opt+F slot)" })
 map("n", "<M-S-f>", format_doc, { desc = "Format document (Shift+Opt+f)" })
@@ -202,11 +212,46 @@ if vim.fn.has "macunix" == 1 then
     end
   end
 
-  map("n", "<leader>sb", with_actions(function(a) a.build() end), { desc = "Xcodebuild: build" })
-  map("n", "<leader>sr", with_actions(function(a) a.build_and_run() end), { desc = "Xcodebuild: build & run" })
-  map("n", "<leader>st", with_actions(function(a) a.run_tests() end), { desc = "Xcodebuild: test" })
-  map("n", "<leader>sl", with_actions(function(a) a.clean_build() end), { desc = "Xcodebuild: clean build" })
-  map("n", "<leader>sd", with_actions(function(a) a.select_device() end), { desc = "Xcodebuild: select device" })
+  map(
+    "n",
+    "<leader>sb",
+    with_actions(function(a)
+      a.build()
+    end),
+    { desc = "Xcodebuild: build" }
+  )
+  map(
+    "n",
+    "<leader>sr",
+    with_actions(function(a)
+      a.build_and_run()
+    end),
+    { desc = "Xcodebuild: build & run" }
+  )
+  map(
+    "n",
+    "<leader>st",
+    with_actions(function(a)
+      a.run_tests()
+    end),
+    { desc = "Xcodebuild: test" }
+  )
+  map(
+    "n",
+    "<leader>sl",
+    with_actions(function(a)
+      a.clean_build()
+    end),
+    { desc = "Xcodebuild: clean build" }
+  )
+  map(
+    "n",
+    "<leader>sd",
+    with_actions(function(a)
+      a.select_device()
+    end),
+    { desc = "Xcodebuild: select device" }
+  )
   map("n", "<leader>sp", function()
     local ok, actions = pcall(require, "xcodebuild.actions")
     if ok then
@@ -215,9 +260,30 @@ if vim.fn.has "macunix" == 1 then
       vim.cmd "XcodebuildPicker"
     end
   end, { desc = "Xcodebuild: action picker" })
-  map("n", "<leader>sg", with_xb(function(xb) xb.build_and_debug() end, "xcodebuild DAP not loaded"), {
-    desc = "Xcodebuild: build & debug",
-  })
-  map("n", "<leader>sc", with_xb(function(xb) xb.focus_console() end), { desc = "Xcodebuild: focus app console" })
-  map("n", "<leader>sx", with_xb(function(xb) xb.close_debug_ui() end), { desc = "Xcodebuild: stop debugger & close DAP UI" })
+  map(
+    "n",
+    "<leader>sg",
+    with_xb(function(xb)
+      xb.build_and_debug()
+    end, "xcodebuild DAP not loaded"),
+    {
+      desc = "Xcodebuild: build & debug",
+    }
+  )
+  map(
+    "n",
+    "<leader>sc",
+    with_xb(function(xb)
+      xb.focus_console()
+    end),
+    { desc = "Xcodebuild: focus app console" }
+  )
+  map(
+    "n",
+    "<leader>sx",
+    with_xb(function(xb)
+      xb.close_debug_ui()
+    end),
+    { desc = "Xcodebuild: stop debugger & close DAP UI" }
+  )
 end

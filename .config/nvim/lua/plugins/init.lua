@@ -30,7 +30,7 @@ return {
       },
       indent = { enabled = true },
       input = { enabled = true },
-      notifier = { enabled = true },
+      notifier = { enabled = false },
       picker = {
         enabled = true,
         sources = {
@@ -58,8 +58,12 @@ return {
       opts = opts or {}
       opts.ensure_installed = opts.ensure_installed or {}
       vim.list_extend(opts.ensure_installed, {
-        "vim", "lua", "vimdoc",
-        "html", "css", "swift",
+        "vim",
+        "lua",
+        "vimdoc",
+        "html",
+        "css",
+        "swift",
       })
       return opts
     end,
@@ -92,9 +96,13 @@ return {
   -- Telescope: fast find + Ctrl+j/k for picker nav (Cursor quick-input parity)
   {
     "nvim-telescope/telescope.nvim",
-    dependencies = { "nvim-telescope/telescope-fzf-native.nvim" },
+    dependencies = {
+      "nvim-telescope/telescope-fzf-native.nvim",
+      "nvim-telescope/telescope-file-browser.nvim",
+    },
     opts = function(_, opts)
       local actions = require "telescope.actions"
+      local fb_actions = require("telescope").extensions.file_browser.actions
       local have_fd = vim.fn.executable "fd" == 1
 
       opts.defaults = vim.tbl_deep_extend("force", opts.defaults or {}, {
@@ -170,6 +178,34 @@ return {
           override_file_sorter = true,
           case_mode = "smart_case",
         },
+        file_browser = {
+          theme = "dropdown",
+          hijack_netrw = true,
+          hidden = { file_browser = true, folder_browser = true },
+          grouped = true,
+          respect_gitignore = false,
+          mappings = {
+            n = {
+              N = fb_actions.create,
+              h = fb_actions.goto_parent_dir,
+              ["/"] = function()
+                vim.cmd "startinsert"
+              end,
+              ["<C-u>"] = function(prompt_bufnr)
+                for _ = 1, 10 do
+                  actions.move_selection_previous(prompt_bufnr)
+                end
+              end,
+              ["<C-d>"] = function(prompt_bufnr)
+                for _ = 1, 10 do
+                  actions.move_selection_next(prompt_bufnr)
+                end
+              end,
+              ["<PageUp>"] = actions.preview_scrolling_up,
+              ["<PageDown>"] = actions.preview_scrolling_down,
+            },
+          },
+        },
       })
 
       return opts
@@ -177,22 +213,17 @@ return {
     config = function(_, opts)
       require("telescope").setup(opts)
       pcall(require("telescope").load_extension, "fzf")
+      pcall(require("telescope").load_extension, "file_browser")
       for _, ext in ipairs(opts.extensions_list or {}) do
         pcall(require("telescope").load_extension, ext)
       end
     end,
   },
 
-  -- Sidebar on the right (Cursor workbench.sideBar.location)
+  -- Replaced by telescope-file-browser.nvim.
   {
     "nvim-tree/nvim-tree.lua",
-    opts = function(_, opts)
-      opts.view = vim.tbl_deep_extend("force", opts.view or {}, { side = "right" })
-      opts.filters = vim.tbl_deep_extend("force", opts.filters or {}, {
-        dotfiles = false,
-      })
-      return opts
-    end,
+    enabled = false,
   },
 
   -- Which-key: Space s group label for Swift / Xcodebuild
@@ -326,11 +357,11 @@ return {
     end,
   },
   {
-    'arnamak/stay-centered.nvim',
+    "arnamak/stay-centered.nvim",
     lazy = false,
     opts = {
-      skip_filetypes = { 'lua', 'typescript' },
-    }
+      skip_filetypes = { "lua", "typescript" },
+    },
   },
   {
     "mbbill/undotree",
@@ -338,10 +369,10 @@ return {
   },
   {
     "wintermute-cell/gitignore.nvim",
-      lazy=true,
-      config = function()
-          require('gitignore')
-      end,
+    lazy = true,
+    config = function()
+      require "gitignore"
+    end,
   },
   { import = "plugins.disabled" },
 }

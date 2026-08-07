@@ -40,14 +40,14 @@ if vim.g.vscode then
       vs_go("editor.action.revealDefinitionAside", "editor.action.goToDefinition"),
       { desc = "Definition aside (vertical split)" }
     )
-    map("n", "gi", vs_go("editor.action.goToImplementation"), { desc = "Go to implementation (Cursor / VS Code)" })
-    map("n", "gD", vs_go("editor.action.goToTypeDefinition"), { desc = "Go to type definition (Cursor / VS Code)" })
+    map("n", "gi", vs_go "editor.action.goToImplementation", { desc = "Go to implementation (Cursor / VS Code)" })
+    map("n", "gD", vs_go "editor.action.goToTypeDefinition", { desc = "Go to type definition (Cursor / VS Code)" })
     map("n", "gr", function()
-      vscode.action("editor.action.rename")
+      vscode.action "editor.action.rename"
     end, { desc = "Rename symbol (VS Code)" })
 
     map("n", "gg", function()
-      vscode.action("cursorTop")
+      vscode.action "cursorTop"
     end, { desc = "Go to top (VS Code)" })
   end
 
@@ -76,6 +76,12 @@ else
   pcall(vim.keymap.del, "n", "<leader>v")
   map("n", "<leader>th", "<C-w>s", { desc = "Horizontal split" })
   map("n", "<leader>tv", "<C-w>v", { desc = "Vertical split" })
+
+  local open_file_browser = function()
+    require("configs.file_browser").open()
+  end
+  map("n", "<C-n>", open_file_browser, { desc = "File browser" })
+  map("n", "<leader>e", open_file_browser, { desc = "File browser" })
 
   require "cursor_parity"
 end

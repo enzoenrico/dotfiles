@@ -1,7 +1,16 @@
-require("nvchad.configs.lspconfig").defaults()
+local nvchad_lsp = require "nvchad.configs.lspconfig"
+nvchad_lsp.defaults()
+
+local ok_blink, blink = pcall(require, "blink.cmp")
+if ok_blink then
+  vim.lsp.config("*", {
+    capabilities = blink.get_lsp_capabilities(nvchad_lsp.capabilities),
+  })
+end
+
 require("configs.swift").setup()
 
-vim.lsp.enable { "html", "cssls", "sourcekit" }
+vim.lsp.enable "sourcekit"
 
 -- NvChad on_attach does not map `K`; prefer cursor diagnostics, then fall back to hover.
 vim.api.nvim_create_autocmd("LspAttach", {
