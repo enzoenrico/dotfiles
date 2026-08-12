@@ -1,5 +1,5 @@
 --- Go to implementation: symbol at cursor (or visual selection), then fuzzy picker.
---- gi: ripgrep + treesitter candidates (no LSP); Telescope fuzzy list.
+--- gi: LSP implementation/definition first, then ripgrep + treesitter candidates.
 
 local M = {}
 
@@ -24,19 +24,37 @@ local TS_DEFINE_TYPES = {
   export_statement = true,
   function_item = true,
   local_function = true,
+  -- TypeScript / TSX
+  type_alias_declaration = true,
+  abstract_class_declaration = true,
+  public_field_definition = true,
+  function_signature = true,
 }
 
+--- Neovim 0.12+: TSNode:field(name) -> TSNode[]; older builds used child_by_field_name.
+---@param node TSNode
+---@param name string
+---@return TSNode?
+local function field_child(node, name)
+  if type(node.field) == "function" then
+    local children = node:field(name)
+    return children and children[1] or nil
+  end
+  if type(node.child_by_field_name) == "function" then
+    return node:child_by_field_name(name)
+  end
+  return nil
+end
+
 local function defining_name(node, bufnr)
-  local name_node = node:child_by_field_name "name"
-    or node:child_by_field_name "declarator"
-    or node:named_child(0)
+  local name_node = field_child(node, "name") or field_child(node, "declarator") or node:named_child(0)
   while name_node do
     local t = name_node:type()
     if t == "identifier" or t == "property_identifier" or t == "type_identifier" then
       return vim.treesitter.get_node_text(name_node, bufnr)
     end
     if t == "function_declarator" or t == "pointer_declarator" then
-      name_node = name_node:child_by_field_name "declarator" or name_node:named_child(0)
+      name_node = field_child(name_node, "declarator") or name_node:named_child(0)
     else
       name_node = name_node:named_child(0)
     end
@@ -273,16 +291,14 @@ local function node_defines_symbol(node, bufnr, sym)
   if not TS_DEFINE_TYPES[node:type()] then
     return false
   end
-  local name_node = node:child_by_field_name "name"
-    or node:child_by_field_name "declarator"
-    or node:named_child(0)
+  local name_node = field_child(node, "name") or field_child(node, "declarator") or node:named_child(0)
   while name_node do
     local t = name_node:type()
     if t == "identifier" or t == "property_identifier" or t == "type_identifier" then
       return vim.treesitter.get_node_text(name_node, bufnr) == sym
     end
     if t == "function_declarator" or t == "pointer_declarator" then
-      name_node = name_node:child_by_field_name "declarator" or name_node:named_child(0)
+      name_node = field_child(name_node, "declarator") or name_node:named_child(0)
     else
       name_node = name_node:named_child(0)
     end
@@ -291,26 +307,34 @@ local function node_defines_symbol(node, bufnr, sym)
 end
 
 local function collect_treesitter(bufnr, sym)
-  if not pcall(vim.treesitter.get_parser, bufnr) then
+  local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+  if not ok or not parser then
     return {}
   end
-  local tree = vim.treesitter.get_parser(bufnr):trees()[1]
+  local trees = parser:parse() or parser:trees()
+  local tree = trees and trees[1]
   if not tree then
     return {}
   end
   local out = {}
   local seen = {}
+  local seen_lines = {}
 
   local function walk(node)
     if node_defines_symbol(node, bufnr, sym) then
       local start_row, start_col = node:start()
-      add_location(out, seen, {
-        bufnr = bufnr,
-        filename = vim.api.nvim_buf_get_name(bufnr),
-        lnum = start_row + 1,
-        col = start_col + 1,
-        kind = "treesitter",
-      })
+      -- Nested wrappers (export_statement > lexical_declaration > declarator)
+      -- all define the same symbol; keep one entry per line.
+      if not seen_lines[start_row] then
+        seen_lines[start_row] = true
+        add_location(out, seen, {
+          bufnr = bufnr,
+          filename = vim.api.nvim_buf_get_name(bufnr),
+          lnum = start_row + 1,
+          col = start_col + 1,
+          kind = "treesitter",
+        })
+      end
     end
     for child in node:iter_children() do
       walk(child)
@@ -352,6 +376,10 @@ local function collect_project_grep(sym)
     string.format("\\blocal\\s+function\\s+%s\\s*\\(", esc),
     string.format("\\bexport\\s+(?:default\\s+)?(?:async\\s+)?function\\s+%s\\b", esc),
     string.format("\\bexport\\s+(?:const|let|var|class|type|interface|enum)\\s+%s\\b", esc),
+    -- TS: classes implementing/extending the symbol, arrow-function properties.
+    string.format("\\bclass\\s+\\w+[^\\n{]*\\b(?:implements|extends)\\b[^\\n{]*\\b%s\\b", esc),
+    string.format("\\b%s\\s*=\\s*(?:async\\s*)?\\(", esc),
+    string.format("\\b%s\\s*:\\s*(?:async\\s*)?\\(", esc),
   }
 
   local args = { "rg", "--vimgrep", "--no-heading", "--smart-case", "-g", "!.git", "-g", "!node_modules" }
@@ -637,6 +665,12 @@ function M.implementation_locations(sym, opts)
   local all = {}
   local seen = {}
 
+  -- LSP first: for TS and other server-backed languages this is the accurate source.
+  pcall(function()
+    for _, loc in ipairs(collect_lsp(sym, opts.lsp_timeout or 2500)) do
+      add_location(all, seen, loc)
+    end
+  end)
   pcall(function()
     for _, loc in ipairs(collect_treesitter(cur.bufnr, sym)) do
       add_location(all, seen, loc)

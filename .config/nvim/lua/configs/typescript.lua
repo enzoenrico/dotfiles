@@ -144,7 +144,17 @@ function M.setup_lsp()
 end
 
 function M.setup_treesitter()
-  require("nvim-treesitter").install(WEB_PARSERS)
+  local ts = require "nvim-treesitter"
+  if type(ts.install) == "function" then
+    -- nvim-treesitter main
+    ts.install(WEB_PARSERS)
+  else
+    -- nvim-treesitter master fallback
+    local ok, install = pcall(require, "nvim-treesitter.install")
+    if ok and install.ensure_installed then
+      install.ensure_installed(WEB_PARSERS)
+    end
+  end
 
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_valid(buf) and vim.tbl_contains(WEB_FTS, vim.bo[buf].filetype) then

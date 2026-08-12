@@ -67,9 +67,20 @@ return {
       })
       return opts
     end,
-    config = function()
-      require("nvim-treesitter").setup()
-      require("configs.treesitter_nvim012").patch()
+    config = function(_, opts)
+      local ts = require "nvim-treesitter"
+      ts.setup(opts)
+
+      -- main-branch API: parsers are installed explicitly (opts alone is not enough).
+      local ensure = opts.ensure_installed or {}
+      if type(ensure) == "table" and #ensure > 0 and type(ts.install) == "function" then
+        ts.install(ensure)
+      end
+
+      -- master-only query predicate shim for Neovim 0.12; skip on main.
+      if pcall(require, "nvim-treesitter.locals") then
+        require("configs.treesitter_nvim012").patch()
+      end
       require("configs.treesitter_ignore").setup()
     end,
   },
