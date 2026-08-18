@@ -62,7 +62,7 @@ local function defining_name(node, bufnr)
   return nil
 end
 
---- Symbol for gi: visual selection, enclosing TS definition name, else identifier/cword.
+--- Symbol for navigation: visual selection, identifier at cursor, enclosing definition.
 local function symbol_at_cursor()
   local mode = vim.fn.mode()
   if mode:find "[vV\022]" then
@@ -88,21 +88,21 @@ local function symbol_at_cursor()
   if ok and node then
     local walk = node
     while walk do
-      if TS_DEFINE_TYPES[walk:type()] then
-        local name = defining_name(walk, bufnr)
-        if name and name ~= "" then
-          return name, walk
+      local t = walk:type()
+      if t == "identifier" or t == "property_identifier" or t == "type_identifier" or t == "field_identifier" then
+        local text = vim.treesitter.get_node_text(walk, bufnr)
+        if text and text ~= "" then
+          return text, walk
         end
       end
       walk = walk:parent()
     end
     walk = node
     while walk do
-      local t = walk:type()
-      if t == "identifier" or t == "property_identifier" or t == "type_identifier" or t == "field_identifier" then
-        local text = vim.treesitter.get_node_text(walk, bufnr)
-        if text and text ~= "" then
-          return text, walk
+      if TS_DEFINE_TYPES[walk:type()] then
+        local name = defining_name(walk, bufnr)
+        if name and name ~= "" then
+          return name, walk
         end
       end
       walk = walk:parent()
@@ -132,6 +132,11 @@ local function loc_key(loc)
   return string.format("%s:%d:%d", file, loc.lnum or 1, loc.col or 0)
 end
 
+local function loc_line_key(loc)
+  local file = loc.filename or vim.api.nvim_buf_get_name(loc.bufnr or -1)
+  return string.format("%s:%d", file, loc.lnum or 1)
+end
+
 local function same_position(a, b)
   if a.bufnr and b.bufnr and a.bufnr ~= b.bufnr then
     return false
@@ -153,10 +158,12 @@ local function add_location(locations, seen, loc)
     loc.bufnr = nil
   end
   local key = loc_key(loc)
-  if seen[key] then
+  local line_key = loc_line_key(loc)
+  if seen[key] or seen[line_key] then
     return
   end
   seen[key] = true
+  seen[line_key] = true
   locations[#locations + 1] = loc
 end
 
@@ -197,6 +204,28 @@ local function sync_results(buf, method, params, timeout_ms)
   return merged
 end
 
+local function collect_lsp_method(method, kind, timeout_ms, extra_params)
+  local buf = vim.api.nvim_get_current_buf()
+  local out = {}
+  local seen = {}
+
+  for _, client in ipairs(vim.lsp.get_clients { bufnr = buf }) do
+    if client:supports_method(method, buf) then
+      local enc = client.offset_encoding
+      local params = vim.lsp.util.make_position_params(0, enc)
+      if extra_params then
+        params = vim.tbl_deep_extend("force", params, extra_params)
+      end
+      local ok, response = pcall(client.request_sync, client, method, params, timeout_ms, buf)
+      if ok and response and response.result then
+        add_lsp_locations(out, seen, response.result, kind, enc)
+      end
+    end
+  end
+
+  return out
+end
+
 local function workspace_root()
   local buf = vim.api.nvim_get_current_buf()
   for _, client in ipairs(vim.lsp.get_clients { bufnr = buf }) do
@@ -212,7 +241,17 @@ local function workspace_root()
     return vim.loop.cwd()
   end
 
-  local markers = { ".git", "buildServer.json", "Package.swift", "*.xcodeproj", "*.xcworkspace", "package.json", "go.mod", "Cargo.toml", "pyproject.toml" }
+  local markers = {
+    ".git",
+    "buildServer.json",
+    "Package.swift",
+    "*.xcodeproj",
+    "*.xcworkspace",
+    "package.json",
+    "go.mod",
+    "Cargo.toml",
+    "pyproject.toml",
+  }
   local found = vim.fs.find(markers, { path = start, upward = true })[1]
   if found then
     return vim.fs.dirname(found)
@@ -228,6 +267,13 @@ local function collect_lsp(sym, timeout_ms)
     return {}
   end
   local client = clients[1]
+  local function supporting_client(method)
+    for _, candidate in ipairs(clients) do
+      if candidate:supports_method(method, buf) then
+        return candidate
+      end
+    end
+  end
   local enc = client.offset_encoding
   -- First arg is window id, not bufnr (see vim.lsp.util.make_position_params).
   local pos_params = vim.lsp.util.make_position_params(0, enc)
@@ -235,7 +281,10 @@ local function collect_lsp(sym, timeout_ms)
   local out = {}
   local seen = {}
 
-  if client:supports_method "textDocument/implementation" then
+  local implementation_client = supporting_client "textDocument/implementation"
+  if implementation_client then
+    enc = implementation_client.offset_encoding
+    pos_params = vim.lsp.util.make_position_params(0, enc)
     add_lsp_locations(
       out,
       seen,
@@ -245,17 +294,16 @@ local function collect_lsp(sym, timeout_ms)
     )
   end
 
-  if client:supports_method "textDocument/definition" then
-    add_lsp_locations(
-      out,
-      seen,
-      sync_results(buf, "textDocument/definition", pos_params, timeout_ms),
-      "lsp-def",
-      enc
-    )
+  local definition_client = supporting_client "textDocument/definition"
+  if definition_client then
+    enc = definition_client.offset_encoding
+    pos_params = vim.lsp.util.make_position_params(0, enc)
+    add_lsp_locations(out, seen, sync_results(buf, "textDocument/definition", pos_params, timeout_ms), "lsp-def", enc)
   end
 
-  if client:supports_method "textDocument/documentSymbol" then
+  local document_symbol_client = supporting_client "textDocument/documentSymbol"
+  if document_symbol_client then
+    enc = document_symbol_client.offset_encoding
     local syms = sync_results(buf, "textDocument/documentSymbol", doc_params, timeout_ms)
     local uri = vim.uri_from_bufnr(buf)
     local function walk_symbol_list(slist)
@@ -275,7 +323,9 @@ local function collect_lsp(sym, timeout_ms)
     walk_symbol_list(syms)
   end
 
-  if client:supports_method "workspace/symbol" then
+  local workspace_symbol_client = supporting_client "workspace/symbol"
+  if workspace_symbol_client then
+    enc = workspace_symbol_client.offset_encoding
     local syms = sync_results(buf, "workspace/symbol", { query = sym }, timeout_ms)
     for _, s in ipairs(syms) do
       if s.name == sym and s.location then
@@ -552,76 +602,46 @@ end
 --- Sync LSP definition quickfix items for `buf` (includes `user_data` for jumps).
 ---@return vim.quickfix.entry[], string|nil offset_encoding
 function M.definition_items(buf)
-  local clients = vim.lsp.get_clients { bufnr = buf }
-  if #clients == 0 then
+  if buf ~= vim.api.nvim_get_current_buf() then
     return {}, nil
   end
-  local client = clients[1]
-  local enc = client.offset_encoding
-  local raw = vim.lsp.buf_request_sync(
-    buf,
-    "textDocument/definition",
-    vim.lsp.util.make_position_params(0, enc),
-    2500
-  )
-  if not raw then
-    return {}, enc
-  end
-  local items = {}
-  for _, r in pairs(raw) do
-    if r.result then
-      local list = vim.islist(r.result) and r.result or { r.result }
-      vim.list_extend(items, vim.lsp.util.locations_to_items(list, enc))
-    end
-  end
-  return items, enc
+
+  local items = collect_lsp_method("textDocument/definition", "lsp-def", 2500)
+  return items, items[1] and items[1].offset_encoding or nil
 end
 
 local jump_to = M.jump_to
 
-local function show_picker(locations, sym)
-  local pickers = require "telescope.pickers"
-  local finders = require "telescope.finders"
-  local conf = require("telescope.config").values
-  local actions = require "telescope.actions"
-  local action_state = require "telescope.actions.state"
+local function show_picker(locations, sym, title)
+  local items = {}
+  for _, loc in ipairs(locations) do
+    local file = loc.filename or (loc.bufnr and vim.api.nvim_buf_get_name(loc.bufnr)) or ""
+    local line = vim.trim(preview_line(loc))
+    items[#items + 1] = {
+      file = file,
+      buf = loc.bufnr,
+      pos = { loc.lnum, math.max((loc.col or 1) - 1, 0) },
+      text = table.concat({ file, loc.kind or "", line }, " "),
+      line = line,
+      label = ("[%s]"):format(loc.kind or "?"),
+      location = loc,
+    }
+  end
 
-  pickers
-    .new({}, {
-      prompt_title = "Implementation · " .. sym,
-      finder = finders.new_table {
-        results = locations,
-        entry_maker = function(entry)
-          local file = vim.fn.fnamemodify(entry.filename or "", ":~:.")
-          local line = preview_line(entry)
-          line = vim.trim(line):sub(1, 80)
-          return {
-            value = entry,
-            path = entry.filename,
-            filename = entry.filename,
-            bufnr = entry.bufnr,
-            lnum = entry.lnum,
-            col = entry.col or 0,
-            display = string.format("%s:%d:%d [%s] %s", file, entry.lnum, (entry.col or 0) + 1, entry.kind or "?", line),
-            ordinal = table.concat { file, entry.kind, line },
-          }
-        end,
-      },
-      sorter = conf.generic_sorter {},
-      previewer = conf.grep_previewer {},
-      attach_mappings = function(_, map)
-        actions.select_default:replace(function(prompt_bufnr)
-          actions.close(prompt_bufnr)
-          local entry = action_state.get_selected_entry()
-          if entry then
-            local loc = entry.value
-            jump_to(loc, loc.offset_encoding and { offset_encoding = loc.offset_encoding } or nil)
-          end
-        end)
-        return true
-      end,
-    })
-    :find()
+  Snacks.picker.pick {
+    title = (title or "Implementation") .. " · " .. sym,
+    items = items,
+    format = "file",
+    preview = "file",
+    auto_confirm = false,
+    confirm = function(picker, item)
+      picker:close()
+      if item then
+        local loc = item.location
+        jump_to(loc, loc.offset_encoding and { offset_encoding = loc.offset_encoding } or nil)
+      end
+    end,
+  }
 end
 
 local function apply_cursor_filter(all, cur)
@@ -664,23 +684,69 @@ function M.implementation_locations(sym, opts)
   local cur = cursor_location()
   local all = {}
   local seen = {}
+  local ft = vim.bo[cur.bufnr].filetype
+  local is_typescript = ft == "javascript" or ft == "javascriptreact" or ft == "typescript" or ft == "typescriptreact"
 
-  -- LSP first: for TS and other server-backed languages this is the accurate source.
-  pcall(function()
-    for _, loc in ipairs(collect_lsp(sym, opts.lsp_timeout or 2500)) do
+  if is_typescript then
+    -- tsserver's implementation response is authoritative. For ordinary React
+    -- components and functions it may be empty, so definition is the useful fallback.
+    for _, loc in ipairs(collect_lsp_method("textDocument/implementation", "lsp-impl", opts.lsp_timeout or 2500)) do
       add_location(all, seen, loc)
     end
-  end)
-  pcall(function()
-    for _, loc in ipairs(collect_treesitter(cur.bufnr, sym)) do
-      add_location(all, seen, loc)
+
+    if #filter_current_location(all, cur) == 0 then
+      for _, loc in ipairs(collect_lsp_method("textDocument/definition", "lsp-def", opts.lsp_timeout or 2500)) do
+        add_location(all, seen, loc)
+      end
     end
-  end)
-  pcall(function()
-    for _, loc in ipairs(collect_project_grep(sym)) do
-      add_location(all, seen, loc)
+
+    -- A concrete component/function has no separate implementation: tsserver
+    -- returns only its declaration. In that case, `gi` remains useful by
+    -- navigating to its call sites and JSX usages.
+    if #filter_current_location(all, cur) == 0 then
+      for _, loc in
+        ipairs(
+          collect_lsp_method(
+            "textDocument/references",
+            "lsp-ref",
+            opts.lsp_timeout or 2500,
+            { context = { includeDeclaration = false } }
+          )
+        )
+      do
+        add_location(all, seen, loc)
+      end
     end
-  end)
+
+    if #filter_current_location(all, cur) == 0 then
+      pcall(function()
+        for _, loc in ipairs(collect_treesitter(cur.bufnr, sym)) do
+          add_location(all, seen, loc)
+        end
+      end)
+      pcall(function()
+        for _, loc in ipairs(collect_project_grep(sym)) do
+          add_location(all, seen, loc)
+        end
+      end)
+    end
+  else
+    pcall(function()
+      for _, loc in ipairs(collect_lsp(sym, opts.lsp_timeout or 2500)) do
+        add_location(all, seen, loc)
+      end
+    end)
+    pcall(function()
+      for _, loc in ipairs(collect_treesitter(cur.bufnr, sym)) do
+        add_location(all, seen, loc)
+      end
+    end)
+    pcall(function()
+      for _, loc in ipairs(collect_project_grep(sym)) do
+        add_location(all, seen, loc)
+      end
+    end)
+  end
 
   local filtered = {}
   for _, loc in ipairs(all) do
@@ -738,14 +804,63 @@ function M.go()
   local locations, _, all = M.implementation_locations(sym)
   if #locations == 0 then
     if #all > 0 then
-      vim.notify(("No implementations for %q outside the current location"):format(sym), vim.log.levels.INFO)
+      vim.notify(("No implementations or usages for %q outside the current location"):format(sym), vim.log.levels.INFO)
     else
-      vim.notify(("No implementations for %q"):format(sym), vim.log.levels.INFO)
+      vim.notify(("No implementations or usages for %q"):format(sym), vim.log.levels.INFO)
     end
     return
   end
 
-  show_picker(locations, sym)
+  local references_only = true
+  for _, loc in ipairs(locations) do
+    if loc.kind ~= "lsp-ref" then
+      references_only = false
+      break
+    end
+  end
+  show_picker(locations, sym, references_only and "Usage" or "Implementation")
+end
+
+--- Go to an LSP definition, falling back to Tree-sitter and project declarations.
+function M.go_definition()
+  local sym = symbol_at_cursor()
+  if not sym or sym == "" then
+    vim.notify("No symbol under cursor", vim.log.levels.WARN)
+    return
+  end
+
+  local buf = vim.api.nvim_get_current_buf()
+  local items, enc = M.definition_items(buf)
+  if #items == 1 then
+    M.jump_to(items[1], { offset_encoding = enc })
+    return
+  end
+  if #items > 1 then
+    require("telescope.builtin").lsp_definitions()
+    return
+  end
+
+  local locations = {}
+  local seen = {}
+  pcall(function()
+    for _, loc in ipairs(collect_treesitter(buf, sym)) do
+      add_location(locations, seen, loc)
+    end
+  end)
+  pcall(function()
+    for _, loc in ipairs(collect_project_grep(sym)) do
+      add_location(locations, seen, loc)
+    end
+  end)
+
+  locations = filter_current_location(locations, cursor_location())
+  if #locations == 0 then
+    vim.notify(("No definition found for %q"):format(sym), vim.log.levels.INFO)
+  elseif #locations == 1 then
+    M.jump_to(locations[1])
+  else
+    show_picker(locations, sym, "Definition")
+  end
 end
 
 return M

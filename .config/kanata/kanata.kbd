@@ -4,6 +4,8 @@
 ;; Home-row behavior follows:
 ;; https://github.com/KensukeM39/kanata-homerow-hyper-keymap/blob/main/kanata-mac-mac-US.kbd
 ;; Key idea: tap-hold-release-keys + a temporary nomods layer for fast rolls.
+;; Tap a home-row key, then press it again within repeat-window and hold:
+;; tap-dance-eager's second action is a plain letter, so it OS-repeats.
 ;;
 ;; lsft nav design:
 ;;   lsft emits lsft AND activates the nav layer while held.
@@ -35,7 +37,7 @@
 )
 
 (defvar
-  tap-time 100
+  repeat-window 500
   hold-time 150
 
   left-hand-keys (
@@ -70,17 +72,41 @@
     (on-idle-fakekey to-base tap 20)
   )
 
-  ;; Left-hand home row mods
-  a-hr  (tap-hold-release-keys $tap-time $hold-time (multi a @tap) rsft $left-hand-keys)
-  s-hr  (tap-hold-release-keys $tap-time $hold-time (multi s @tap) lctl $left-hand-keys)
-  d-hr  (tap-hold-release-keys $tap-time $hold-time (multi d @tap) lalt $left-hand-keys)
-  f-hr  (tap-hold-release-keys $tap-time $hold-time (multi f @tap) lmet $left-hand-keys)
-
-  ;; Right-hand home row mods — base layer
-  j-hr  (tap-hold-release-keys $tap-time $hold-time (multi j @tap) rmet $right-hand-keys)
-  k-hr  (tap-hold-release-keys $tap-time $hold-time (multi k @tap) ralt $right-hand-keys)
-  l-hr  (tap-hold-release-keys $tap-time $hold-time (multi l @tap) rctl $right-hand-keys)
-  sc-hr (tap-hold-release-keys $tap-time $hold-time (multi ; @tap) rsft $right-hand-keys)
+  ;; 1st tap: home-row tap-hold. 2nd tap within repeat-window: plain letter
+  ;; (hold that second press to repeat). tap-hold tap-repress is 0 so a
+  ;; held repress does not take the (multi letter @tap) path.
+  a-hr (tap-dance-eager $repeat-window (
+    (tap-hold-release-keys 0 $hold-time (multi a @tap) rsft $left-hand-keys)
+    a
+  ))
+  s-hr (tap-dance-eager $repeat-window (
+    (tap-hold-release-keys 0 $hold-time (multi s @tap) lctl $left-hand-keys)
+    s
+  ))
+  d-hr (tap-dance-eager $repeat-window (
+    (tap-hold-release-keys 0 $hold-time (multi d @tap) lalt $left-hand-keys)
+    d
+  ))
+  f-hr (tap-dance-eager $repeat-window (
+    (tap-hold-release-keys 0 $hold-time (multi f @tap) lmet $left-hand-keys)
+    f
+  ))
+  j-hr (tap-dance-eager $repeat-window (
+    (tap-hold-release-keys 0 $hold-time (multi j @tap) rmet $right-hand-keys)
+    j
+  ))
+  k-hr (tap-dance-eager $repeat-window (
+    (tap-hold-release-keys 0 $hold-time (multi k @tap) ralt $right-hand-keys)
+    k
+  ))
+  l-hr (tap-dance-eager $repeat-window (
+    (tap-hold-release-keys 0 $hold-time (multi l @tap) rctl $right-hand-keys)
+    l
+  ))
+  sc-hr (tap-dance-eager $repeat-window (
+    (tap-hold-release-keys 0 $hold-time (multi ; @tap) rsft $right-hand-keys)
+    ;
+  ))
 
   ;; lsft: emit lsft AND activate nav layer.
   ;; Acts as regular shift for all keys not remapped on the nav layer.
@@ -88,10 +114,22 @@
 
   ;; Nav-layer left HRMs: tap-hold-press so mod activates on arrow press (not after
   ;; release/timeout). Typing rolls are not a concern while lsft-nav is held.
-  a-nav (tap-hold-press $tap-time $hold-time (multi a @tap) rsft)
-  s-nav (tap-hold-press $tap-time $hold-time (multi s @tap) lctl)
-  d-nav (tap-hold-press $tap-time $hold-time (multi d @tap) lalt)
-  f-nav (tap-hold-press $tap-time $hold-time (multi f @tap) lmet)
+  a-nav (tap-dance-eager $repeat-window (
+    (tap-hold-press 0 $hold-time (multi a @tap) rsft)
+    a
+  ))
+  s-nav (tap-dance-eager $repeat-window (
+    (tap-hold-press 0 $hold-time (multi s @tap) lctl)
+    s
+  ))
+  d-nav (tap-dance-eager $repeat-window (
+    (tap-hold-press 0 $hold-time (multi d @tap) lalt)
+    d
+  ))
+  f-nav (tap-dance-eager $repeat-window (
+    (tap-hold-press 0 $hold-time (multi f @tap) lmet)
+    f
+  ))
 
   ;; Nav-layer arrows — select when rsft is outputted OR physical `a` is down
   ;; (covers pending base-layer @a-hr that has not resolved to rsft yet).

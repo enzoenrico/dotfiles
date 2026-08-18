@@ -83,18 +83,69 @@ map("n", "<leader>k", "<cmd>q<CR>", { desc = "Quit window (:q)", silent = true }
 -- Problems
 map("n", "<leader>p", "<cmd>Telescope diagnostics<CR>", { desc = "Problems / diagnostics" })
 
--- LSP: Cursor-style chords + keep gd/gD/gr from NvChad/LSP
+-- Install these globally and per LSP buffer. NvChad adds a buffer-local `gd`
+-- during LSP attachment, which otherwise takes precedence over the global map.
+local function go_to_definition()
+  require("custom.go_implementation").go_definition()
+end
+
+local function go_to_implementation()
+  require("custom.go_implementation").go()
+end
+
+local function install_navigation_maps(bufnr)
+  local buffer = bufnr and { buffer = bufnr } or {}
+  map(
+    "n",
+    "gd",
+    go_to_definition,
+    vim.tbl_extend("force", buffer, {
+      desc = "Go to definition (LSP with project fallback)",
+    })
+  )
+  map(
+    "n",
+    "gi",
+    go_to_implementation,
+    vim.tbl_extend("force", buffer, {
+      desc = "Go to implementation (LSP with definition fallback)",
+    })
+  )
+  map(
+    { "x", "v" },
+    "gi",
+    go_to_implementation,
+    vim.tbl_extend("force", buffer, {
+      desc = "Go to implementation for selection",
+    })
+  )
+end
+
+install_navigation_maps()
+
+vim.api.nvim_create_autocmd("LspAttach", {
+  group = vim.api.nvim_create_augroup("cursor-navigation-maps", { clear = true }),
+  callback = function(args)
+    vim.schedule(function()
+      if vim.api.nvim_buf_is_valid(args.buf) then
+        install_navigation_maps(args.buf)
+      end
+    end)
+  end,
+})
+
+-- LSP may have attached before this scheduled mappings module was loaded.
+vim.schedule(function()
+  for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(bufnr) and #vim.lsp.get_clients { bufnr = bufnr } > 0 then
+      install_navigation_maps(bufnr)
+    end
+  end
+end)
+
 map("n", "gr", function()
   require "custom.lsp_renamer"()
 end, { desc = "Rename (Cursor gr)" })
-
-map("n", "gi", function()
-  require("custom.go_implementation").go()
-end, { desc = "Go to implementation (fuzzy search, no LSP)" })
-
-map({ "x", "v" }, "gi", function()
-  require("custom.go_implementation").go()
-end, { desc = "Go to implementation for selection" })
 
 map("n", "<D-]>", function()
   require("telescope.builtin").lsp_references()

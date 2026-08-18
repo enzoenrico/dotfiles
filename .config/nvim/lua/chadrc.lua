@@ -34,6 +34,7 @@ M.ui = {
   tabufline = {
     enabled = false,
   },
+  transparency = true
 }
 
 return M
