@@ -25,6 +25,7 @@ local theme = select(1, M.detect_system_theme())
 M.base46 = {
   theme = theme,
   theme_toggle = { M.themes.dark, M.themes.light },
+  transparency = true,
 }
 
 M.ui = {
@@ -34,7 +35,6 @@ M.ui = {
   tabufline = {
     enabled = false,
   },
-  transparency = true
 }
 
 return M
