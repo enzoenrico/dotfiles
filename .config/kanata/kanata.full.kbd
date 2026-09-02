@@ -10,7 +10,7 @@
 )
 
 (defvar
-  tap-time 200   ;; tap / repress (ms)
+  tap-time 150   ;; tap / repress (ms)
   hold-time 100  ;; Karabiner to_if_held_down_threshold
 )
 

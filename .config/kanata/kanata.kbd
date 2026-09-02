@@ -37,8 +37,8 @@
 )
 
 (defvar
-  repeat-window 500
-  hold-time 150
+  repeat-window 250
+  hold-time 100
 
   left-hand-keys (
     q w e r t

@@ -39,6 +39,16 @@ alias sail="./vendor/bin/sail"
 alias ff='nvim $(fzf --preview="bat --color=always {}")'
 alias venv="python3 -m venv .venv && source ./.venv/bin/activate"
 alias lg="lazygit"
+alias rbd="./$HOME/dotfiles/scripts/develop-rebase.sh"
+
+# Launch the alternative Neovim worktree without touching the default config.
+nvim-web() {
+  XDG_CONFIG_HOME="$HOME/dotfiles-neovim-web-ui/.config" \
+    XDG_DATA_HOME="$HOME/.local/share/nvim-web-ui" \
+    XDG_CACHE_HOME="$HOME/.cache/nvim-web-ui" \
+    XDG_STATE_HOME="$HOME/.local/state/nvim-web-ui" \
+    command nvim "$@"
+}
 
 # Fuzzy git switch: `gswf hyd-` or `gswf 7579`
 gswf() {

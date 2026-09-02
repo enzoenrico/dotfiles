@@ -24,7 +24,9 @@ mkdir -p "$HOME/.config"
 rsync -av "${RSYNC_EXCLUDES[@]}" \
   "$DOTFILES/.config/" "$HOME/.config/"
 
-"$HOME/.config/borders/install-watcher.sh"
+if [[ -x "$HOME/.config/borders/install-watcher.sh" ]]; then
+  "$HOME/.config/borders/install-watcher.sh"
+fi
 
 # Kitty terminal (~/.config/kitty)
 mkdir -p "$HOME/.config/kitty"
