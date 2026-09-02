@@ -1,4 +1,5 @@
-# Tmux session routing: main (user terminal) vs cursor-agents (AI tooling)
+# Tmux session routing: main / main-2 / … (one session per attached Kitty window)
+# vs a shared cursor-agents session (AI tooling)
 _zsh_is_tooling_terminal() {
   [[ -n "${ZSH_TMUX_TOOLING:-}" ]] && return 0
   [[ -n "${CURSOR_AGENT:-}${CURSOR_CLI:-}${CURSOR_SANDBOX:-}" ]] && return 0
@@ -39,6 +40,30 @@ _zsh_autostarts_tmux() {
   esac
 }
 
+_zsh_tmux_session_client_count() {
+  tmux display-message -p -t "$1" '#{session_attached}' 2>/dev/null || print -r -- 0
+}
+
+# First Kitty/WezTerm/etc. uses `main`. Another OS window (second monitor)
+# gets main-2, main-3, … so it does not share the already-attached session.
+# Closing a window and opening a new one still resumes a detached session.
+_zsh_tmux_unattached_user_session() {
+  local base="$1"
+  local name="$base"
+  local n=2
+  local attached
+  while tmux has-session -t "$name" 2>/dev/null; do
+    attached="$(_zsh_tmux_session_client_count "$name")"
+    if [[ "${attached:-0}" -eq 0 ]]; then
+      print -r -- "$name"
+      return 0
+    fi
+    name="${base}-${n}"
+    n=$((n + 1))
+  done
+  print -r -- "$name"
+}
+
 _zsh_tmux_attach_or_create() {
   local session="$1" window="$2"
   if tmux has-session -t "$session" 2>/dev/null; then
@@ -64,6 +89,8 @@ _zsh_tmux_autostart() {
   else
     local _user_session="${TMUX_SESSION:-main}"
     [[ "$_user_session" == "cursor-agents" ]] && _user_session="main"
+    # Explicit TMUX_SESSION=name still shares; unset (the Kitty default) isolates.
+    [[ -z "${TMUX_SESSION:-}" ]] && _user_session="$(_zsh_tmux_unattached_user_session "$_user_session")"
     _zsh_tmux_attach_or_create "$_user_session" "win-$$"
   fi
 }
