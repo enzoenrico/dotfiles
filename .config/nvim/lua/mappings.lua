@@ -90,3 +90,12 @@ local format = require "keymaps.formatArgs"
 vim.keymap.set("n", "<leader>fp", format.format_parentheses, { desc = "Format function arguments" })
 
 vim.keymap.set("n", "<C-u>", "<cmd>UndotreeToggle<CR>", { desc = "Undotree" })
+
+local comment_header = require "custom.comment_header"
+vim.api.nvim_create_autocmd("InsertEnter", {
+  once = true,
+  callback = function()
+    vim.schedule(comment_header.setup)
+  end,
+})
+map("i", "////", comment_header.expand, { desc = "Comment header snippet" })
