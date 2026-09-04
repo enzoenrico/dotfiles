@@ -1,7 +1,10 @@
 local M = {}
 
 local namespace = vim.api.nvim_create_namespace "diffview_inline_changes"
-local subcommands = { "branch", "changes", "close", "files", "refresh" }
+local subcommands = { "branch", "changes", "close", "files", "refresh", "toggle" }
+local diffs_only = {}
+local hunks_by_buffer = {}
+local toggle_diffs
 
 local function run(command, args)
   vim.api.nvim_cmd({ cmd = command, args = args or {} }, {})
@@ -34,6 +37,8 @@ local function dispatch(opts)
     run("DiffviewToggleFiles")
   elseif action == "refresh" then
     run("DiffviewRefresh")
+  elseif action == "toggle" then
+    toggle_diffs()
   else
     vim.notify(
       ("Unknown Diffview command %q. Expected: %s"):format(action, table.concat(subcommands, ", ")),
@@ -110,6 +115,56 @@ local function current_text(bufnr)
   return text
 end
 
+local function changed_ranges(hunks, line_count)
+  local ranges = {}
+
+  for _, hunk in ipairs(hunks) do
+    local first = math.min(math.max(hunk[3], 1), line_count)
+    local last = math.min(math.max(first + math.max(hunk[4], 1) - 1, first), line_count)
+    local previous = ranges[#ranges]
+
+    if previous and first <= previous[2] + 1 then
+      previous[2] = math.max(previous[2], last)
+    else
+      ranges[#ranges + 1] = { first, last }
+    end
+  end
+
+  return ranges
+end
+
+local function apply_view_mode(view, bufnr, winid, hunks)
+  if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= bufnr then
+    return
+  end
+
+  local enabled = diffs_only[view] == true
+  vim.api.nvim_win_call(winid, function()
+    vim.wo.foldmethod = "manual"
+    vim.wo.foldminlines = 0
+    vim.cmd "silent! normal! zE"
+
+    if enabled then
+      local next_line = 1
+      for _, range in ipairs(changed_ranges(hunks, vim.api.nvim_buf_line_count(bufnr))) do
+        if next_line < range[1] then
+          vim.cmd(("%d,%dfold"):format(next_line, range[1] - 1))
+        end
+        next_line = range[2] + 1
+      end
+      if next_line <= vim.api.nvim_buf_line_count(bufnr) then
+        vim.cmd(("%d,%dfold"):format(next_line, vim.api.nvim_buf_line_count(bufnr)))
+      end
+    end
+
+    vim.wo.foldenable = enabled
+    vim.wo.foldlevel = 0
+    vim.wo.foldcolumn = "0"
+  end)
+
+  vim.b[bufnr].diffview_diffs_only = enabled
+end
+
 local function mark_line(bufnr, row, highlight, sign, sign_highlight)
   vim.api.nvim_buf_set_extmark(bufnr, namespace, row, 0, {
     line_hl_group = highlight,
@@ -130,7 +185,7 @@ local function mark_deletion(bufnr, row, count)
   })
 end
 
-local function apply_inline_changes(bufnr, old_text)
+local function apply_inline_changes(bufnr, old_text, view, winid)
   if not vim.api.nvim_buf_is_valid(bufnr) then
     return
   end
@@ -167,7 +222,9 @@ local function apply_inline_changes(bufnr, old_text)
     end
   end
 
+  hunks_by_buffer[bufnr] = hunks
   vim.b[bufnr].diffview_inline_hunks = #hunks
+  apply_view_mode(view, bufnr, winid, hunks)
 end
 
 function M.show_inline_changes(bufnr, winid, context)
@@ -190,7 +247,7 @@ function M.show_inline_changes(bufnr, winid, context)
 
   local spec = old_blob_spec(entry)
   if not spec then
-    apply_inline_changes(bufnr, "")
+    apply_inline_changes(bufnr, "", view, winid)
     return
   end
 
@@ -203,9 +260,23 @@ function M.show_inline_changes(bufnr, winid, context)
       if current_view ~= view or current_view.cur_entry ~= entry then
         return
       end
-      apply_inline_changes(bufnr, result.code == 0 and result.stdout or "")
+      apply_inline_changes(bufnr, result.code == 0 and result.stdout or "", view, winid)
     end)
   end)
+end
+
+toggle_diffs = function()
+  local view = require("diffview.lib").get_current_view()
+  if not view or not view.cur_entry then
+    vim.notify("No active Diffview", vim.log.levels.WARN)
+    return
+  end
+
+  diffs_only[view] = not diffs_only[view]
+  local main = view.cur_layout:get_main_win()
+  local bufnr = main.file.bufnr
+  apply_view_mode(view, bufnr, main.id, hunks_by_buffer[bufnr] or {})
+  vim.notify(diffs_only[view] and "Diffview: diffs only" or "Diffview: whole file")
 end
 
 function M.clear_inline_changes(view)
@@ -219,9 +290,12 @@ function M.clear_inline_changes(view)
       if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
         vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
         vim.b[bufnr].diffview_inline_hunks = nil
+        vim.b[bufnr].diffview_diffs_only = nil
+        hunks_by_buffer[bufnr] = nil
       end
     end
   end
+  diffs_only[view] = nil
 end
 
 function M.setup()
