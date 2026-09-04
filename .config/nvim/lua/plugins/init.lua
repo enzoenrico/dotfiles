@@ -263,6 +263,7 @@ return {
       return not vim.g.vscode
     end,
     cmd = {
+      "Diffview",
       "DiffviewOpen",
       "DiffviewClose",
       "DiffviewToggleFiles",
