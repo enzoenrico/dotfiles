@@ -207,11 +207,10 @@ vim.api.nvim_create_user_command("SideGo", goto_side, {
   desc = "LSP definition (or gf) in a vertical split to the right",
 })
 
--- Shift+Option+F slot (tmux): format when Conform is available
+-- Shift+Option+F slot (tmux): format + auto-import when Conform is available
 vim.api.nvim_create_user_command("Format", function(args)
-  require("conform").format {
+  require("custom.format").format {
     async = true,
-    lsp_fallback = true,
     range = args.range > 0 and {
       start = { args.line1, 0 },
       ["end"] = { args.line2, 0 },
@@ -220,12 +219,11 @@ vim.api.nvim_create_user_command("Format", function(args)
 end, { range = true })
 
 local function format_doc()
-  require("conform").format { async = true, lsp_fallback = true }
+  require("custom.format").format { async = true }
 end
 local function format_range()
-  require("conform").format {
+  require("custom.format").format {
     async = true,
-    lsp_fallback = true,
     range = {
       start = vim.api.nvim_buf_get_mark(0, "<"),
       ["end"] = vim.api.nvim_buf_get_mark(0, ">"),

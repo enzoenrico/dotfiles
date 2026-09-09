@@ -2,6 +2,10 @@ require "nvchad.mappings"
 
 local map = vim.keymap.set
 
+map({ "n", "x" }, "<leader>fm", function()
+  require("custom.format").format()
+end, { desc = "Format file and import deps" })
+
 if vim.g.vscode then
   local has_vscode, vscode = pcall(require, "vscode")
 
