@@ -9,8 +9,5 @@ require("fzf-lua").setup {
       prompt = "Git Status ❯ ",
       previewer = "git_diff",
     },
-    diff = {
-      preview = "git diff {ref} -- {file}",
-    },
   },
 }

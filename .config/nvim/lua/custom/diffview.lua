@@ -1,30 +1,50 @@
 local M = {}
 
+local namespace = vim.api.nvim_create_namespace "diffview_inline_changes"
 local subcommands = { "branch", "changes", "close", "files", "refresh", "toggle" }
-local scratch_buffers = {}
-local last_action
+local diffs_only = {}
+local hunks_by_buffer = {}
+local toggle_diffs
 
-local function git_root()
-  local result = vim.system({ "git", "rev-parse", "--show-toplevel" }, { text = true }):wait()
-  if result.code ~= 0 then
-    return nil
-  end
-  return vim.trim(result.stdout or "")
+local function run(command, args)
+  vim.api.nvim_cmd({ cmd = command, args = args or {} }, {})
 end
 
-local function read_blob(rev, path, cwd)
-  local result = vim.system({ "git", "show", ("%s:%s"):format(rev, path) }, { text = true, cwd = cwd }):wait()
-  if result.code ~= 0 then
-    return nil
-  end
-  return result.stdout or ""
+local function open_changes()
+  run "DiffviewOpen"
 end
 
-local function relpath(root, abspath)
-  if root and vim.startswith(abspath, root .. "/") then
-    return abspath:sub(#root + 2)
+local function open_branch(args)
+  if #args < 1 or #args > 2 then
+    vim.notify("Usage: :Diffview branch <base> [target]", vim.log.levels.ERROR)
+    return
   end
-  return abspath
+
+  local target = args[2] or "HEAD"
+  run("DiffviewOpen", { args[1] .. "..." .. target })
+end
+
+local function dispatch(opts)
+  local action = opts.fargs[1]
+
+  if not action or action == "changes" then
+    open_changes()
+  elseif action == "branch" then
+    open_branch(vim.list_slice(opts.fargs, 2))
+  elseif action == "close" then
+    run "DiffviewClose"
+  elseif action == "files" then
+    run "DiffviewToggleFiles"
+  elseif action == "refresh" then
+    run "DiffviewRefresh"
+  elseif action == "toggle" then
+    toggle_diffs()
+  else
+    vim.notify(
+      ("Unknown Diffview command %q. Expected: %s"):format(action, table.concat(subcommands, ", ")),
+      vim.log.levels.ERROR
+    )
+  end
 end
 
 local function branches()
@@ -74,154 +94,208 @@ local function complete(arg_lead, command_line, cursor_pos)
   end, candidates)
 end
 
--- Shows/creates a read-only scratch buffer holding `path` as it existed at
--- `target`, then diffs it inline (via mini.diff overlay) against `base`.
-local function open_target_blob(base, target, path, root)
-  local target_content = read_blob(target, path, root)
-  if target_content == nil then
-    vim.notify(("Diffview: %s not found at %s"):format(path, target), vim.log.levels.WARN)
-    return
-  end
+local function old_blob_spec(entry)
+  local RevType = require("diffview.vcs.rev").RevType
+  local rev = entry.revs.a
+  local path = entry.oldpath or entry.path
 
-  local name = ("diffview://%s/%s"):format(target, path)
-  local bufnr = vim.fn.bufnr(name)
-  if bufnr == -1 then
-    bufnr = vim.api.nvim_create_buf(true, true)
-    vim.api.nvim_buf_set_name(bufnr, name)
-  end
-
-  local lines = vim.split(target_content, "\n", { plain = true })
-  if lines[#lines] == "" then
-    lines[#lines] = nil
-  end
-
-  vim.bo[bufnr].modifiable = true
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  vim.bo[bufnr].modifiable = false
-  vim.bo[bufnr].buftype = "nowrite"
-  vim.bo[bufnr].filetype = vim.filetype.match { filename = path } or ""
-  vim.b[bufnr].minidiff_config = { source = require("mini.diff").gen_source.none() }
-  scratch_buffers[bufnr] = true
-
-  vim.cmd.buffer(bufnr)
-
-  local mini_diff = require "mini.diff"
-  pcall(mini_diff.enable, bufnr)
-  pcall(mini_diff.set_ref_text, bufnr, read_blob(base, path, root) or "")
-  local data = mini_diff.get_buf_data(bufnr)
-  if data and not data.overlay then
-    pcall(mini_diff.toggle_overlay, bufnr)
+  if rev.type == RevType.COMMIT then
+    return rev.commit .. ":" .. path
+  elseif rev.type == RevType.STAGE then
+    return (":%d:%s"):format(rev.stage or 0, path)
   end
 end
 
-local function open_changes()
-  last_action = open_changes
-  require("fzf-lua").git_status {
-    actions = {
-      ["default"] = function(selected, opts)
-        require("fzf-lua.actions").file_edit(selected, opts)
-        vim.schedule(function()
-          local ok, mini_diff = pcall(require, "mini.diff")
-          if not ok then
-            return
-          end
-          local bufnr = vim.api.nvim_get_current_buf()
-          local data = mini_diff.get_buf_data(bufnr)
-          if data and not data.overlay then
-            mini_diff.toggle_overlay(bufnr)
-          end
-        end)
-      end,
-    },
-  }
+local function current_text(bufnr)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local text = table.concat(lines, "\n")
+  if #lines > 0 and vim.bo[bufnr].eol then
+    text = text .. "\n"
+  end
+  return text
 end
 
-local function open_branch(args)
-  if #args < 1 or #args > 2 then
-    vim.notify("Usage: :Diffview branch <base> [target]", vim.log.levels.ERROR)
-    return
-  end
+local function changed_ranges(hunks, line_count)
+  local ranges = {}
 
-  local root = git_root()
-  if not root then
-    vim.notify("Diffview: not inside a git repository", vim.log.levels.ERROR)
-    return
-  end
+  for _, hunk in ipairs(hunks) do
+    local first = math.min(math.max(hunk[3], 1), line_count)
+    local last = math.min(math.max(first + math.max(hunk[4], 1) - 1, first), line_count)
+    local previous = ranges[#ranges]
 
-  local base = args[1]
-  local target = args[2] or "HEAD"
-  last_action = function()
-    open_branch(args)
-  end
-
-  require("fzf-lua").git_diff {
-    ref = base .. "..." .. target,
-    cwd = root,
-    actions = {
-      ["default"] = function(selected, opts)
-        local path_lib = require "fzf-lua.path"
-        for _, entry in ipairs(selected) do
-          local resolved = path_lib.entry_to_file(entry, opts)
-          open_target_blob(base, target, relpath(root, resolved.path), root)
-        end
-      end,
-    },
-  }
-end
-
-local function close()
-  for bufnr in pairs(scratch_buffers) do
-    if vim.api.nvim_buf_is_valid(bufnr) then
-      pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+    if previous and first <= previous[2] + 1 then
+      previous[2] = math.max(previous[2], last)
+    else
+      ranges[#ranges + 1] = { first, last }
     end
   end
-  scratch_buffers = {}
+
+  return ranges
 end
 
-local function toggle_overlay()
-  local ok, mini_diff = pcall(require, "mini.diff")
-  if not ok then
+local function apply_view_mode(view, bufnr, winid, hunks)
+  if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= bufnr then
     return
   end
 
-  local bufnr = vim.api.nvim_get_current_buf()
-  local data = mini_diff.get_buf_data(bufnr)
-  if not data then
-    vim.notify("Diffview: mini.diff is not attached to this buffer", vim.log.levels.WARN)
+  local enabled = diffs_only[view] == true
+  vim.api.nvim_win_call(winid, function()
+    vim.wo.foldmethod = "manual"
+    vim.wo.foldminlines = 0
+    vim.cmd "silent! normal! zE"
+
+    if enabled then
+      local next_line = 1
+      for _, range in ipairs(changed_ranges(hunks, vim.api.nvim_buf_line_count(bufnr))) do
+        if next_line < range[1] then
+          vim.cmd(("%d,%dfold"):format(next_line, range[1] - 1))
+        end
+        next_line = range[2] + 1
+      end
+      if next_line <= vim.api.nvim_buf_line_count(bufnr) then
+        vim.cmd(("%d,%dfold"):format(next_line, vim.api.nvim_buf_line_count(bufnr)))
+      end
+    end
+
+    vim.wo.foldenable = enabled
+    vim.wo.foldlevel = 0
+    vim.wo.foldcolumn = "0"
+  end)
+
+  vim.b[bufnr].diffview_diffs_only = enabled
+end
+
+local function mark_line(bufnr, row, highlight, sign, sign_highlight)
+  vim.api.nvim_buf_set_extmark(bufnr, namespace, row, 0, {
+    line_hl_group = highlight,
+    sign_text = sign,
+    sign_hl_group = sign_highlight,
+    priority = 150,
+  })
+end
+
+local function mark_deletion(bufnr, row, count)
+  local suffix = count == 1 and "line" or "lines"
+  vim.api.nvim_buf_set_extmark(bufnr, namespace, row, 0, {
+    sign_text = "-",
+    sign_hl_group = "GitSignsDelete",
+    virt_text = { { ("  −%d deleted %s"):format(count, suffix), "DiffDelete" } },
+    virt_text_pos = "eol",
+    priority = 150,
+  })
+end
+
+local function apply_inline_changes(bufnr, old_text, view, winid)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
     return
   end
-  mini_diff.toggle_overlay(bufnr)
+
+  vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
+
+  local hunks = vim.diff(old_text, current_text(bufnr), {
+    algorithm = "histogram",
+    result_type = "indices",
+  })
+  local line_count = vim.api.nvim_buf_line_count(bufnr)
+
+  for _, hunk in ipairs(hunks) do
+    local old_count = hunk[2]
+    local new_start = hunk[3]
+    local new_count = hunk[4]
+    local is_addition = old_count == 0
+    local highlight = is_addition and "DiffAdd" or "DiffChange"
+    local sign = is_addition and "+" or "~"
+    local sign_highlight = is_addition and "GitSignsAdd" or "GitSignsChange"
+
+    for offset = 0, new_count - 1 do
+      local row = math.min(math.max(new_start - 1 + offset, 0), line_count - 1)
+      mark_line(bufnr, row, highlight, offset == 0 and sign or nil, sign_highlight)
+    end
+
+    local deleted_count = old_count - new_count
+    if new_count == 0 then
+      deleted_count = old_count
+    end
+    if deleted_count > 0 then
+      local row = math.min(math.max(new_start - 1, 0), line_count - 1)
+      mark_deletion(bufnr, row, deleted_count)
+    end
+  end
+
+  hunks_by_buffer[bufnr] = hunks
+  vim.b[bufnr].diffview_inline_hunks = #hunks
+  apply_view_mode(view, bufnr, winid, hunks)
 end
 
-local function refresh()
-  if last_action then
-    last_action()
-  else
-    open_changes()
+function M.show_inline_changes(bufnr, winid, context)
+  if context.layout_name ~= "diff1_plain" or not vim.api.nvim_win_is_valid(winid) then
+    return
   end
+
+  vim.wo[winid].diff = false
+  vim.wo[winid].scrollbind = false
+  vim.wo[winid].cursorbind = false
+  vim.wo[winid].foldenable = false
+  vim.wo[winid].foldcolumn = "0"
+  vim.wo[winid].signcolumn = "yes"
+
+  local view = require("diffview.lib").get_current_view()
+  local entry = view and view.cur_entry
+  if not entry or view.cur_layout:get_main_win().file.bufnr ~= bufnr then
+    return
+  end
+
+  local spec = old_blob_spec(entry)
+  if not spec then
+    apply_inline_changes(bufnr, "", view, winid)
+    return
+  end
+
+  vim.system({ "git", "cat-file", "blob", spec }, {
+    cwd = view.adapter.ctx.toplevel,
+    text = true,
+  }, function(result)
+    vim.schedule(function()
+      local current_view = require("diffview.lib").get_current_view()
+      if current_view ~= view or current_view.cur_entry ~= entry then
+        return
+      end
+      apply_inline_changes(bufnr, result.code == 0 and result.stdout or "", view, winid)
+    end)
+  end)
 end
 
-local function dispatch(opts)
-  local action = opts.fargs[1]
-
-  if not action or action == "changes" then
-    open_changes()
-  elseif action == "branch" then
-    open_branch(vim.list_slice(opts.fargs, 2))
-  elseif action == "close" then
-    close()
-  elseif action == "files" then
-    open_changes()
-  elseif action == "refresh" then
-    refresh()
-  elseif action == "toggle" then
-    toggle_overlay()
-  else
-    vim.notify(
-      ("Unknown Diffview command %q. Expected: %s"):format(action, table.concat(subcommands, ", ")),
-      vim.log.levels.ERROR
-    )
+toggle_diffs = function()
+  local view = require("diffview.lib").get_current_view()
+  if not view or not view.cur_entry then
+    vim.notify("No active Diffview", vim.log.levels.WARN)
+    return
   end
+
+  diffs_only[view] = not diffs_only[view]
+  local main = view.cur_layout:get_main_win()
+  local bufnr = main.file.bufnr
+  apply_view_mode(view, bufnr, main.id, hunks_by_buffer[bufnr] or {})
+  vim.notify(diffs_only[view] and "Diffview: diffs only" or "Diffview: whole file")
+end
+
+function M.clear_inline_changes(view)
+  if not view.files or not view.files.iter then
+    return
+  end
+
+  for _, entry in view.files:iter() do
+    for _, file in ipairs(entry.layout:files()) do
+      local bufnr = file.bufnr
+      if bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+        vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
+        vim.b[bufnr].diffview_inline_hunks = nil
+        vim.b[bufnr].diffview_diffs_only = nil
+        hunks_by_buffer[bufnr] = nil
+      end
+    end
+  end
+  diffs_only[view] = nil
 end
 
 function M.setup()
@@ -229,7 +303,7 @@ function M.setup()
   vim.api.nvim_create_user_command("Diffview", dispatch, {
     nargs = "*",
     complete = complete,
-    desc = "Review Git changes via fzf-lua (status/diff pickers) + mini.diff (overlay)",
+    desc = "Review Git changes in a single-pane Diffview",
   })
 end
 

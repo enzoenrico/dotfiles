@@ -258,20 +258,49 @@ return {
   },
 
   {
+    "sindrets/diffview.nvim",
+    cond = function()
+      return not vim.g.vscode
+    end,
+    cmd = {
+      "Diffview",
+      "DiffviewOpen",
+      "DiffviewClose",
+      "DiffviewToggleFiles",
+      "DiffviewFocusFiles",
+      "DiffviewRefresh",
+      "DiffviewFileHistory",
+    },
+    config = function()
+      require "configs.diffview"
+    end,
+  },
+
+  -- Fuzzy git-status picker (stage/unstage from the list) bound to <leader>d;
+  -- opening a file from it shows inline hunk highlights via mini.diff.
+  {
     "ibhagwan/fzf-lua",
     cond = function()
       return not vim.g.vscode
     end,
     dependencies = { "nvim-tree/nvim-web-devicons" },
-    cmd = { "Diffview", "FzfLua" },
+    cmd = "FzfLua",
+    keys = {
+      {
+        "<leader>d",
+        function()
+          require("custom.git-status").open()
+        end,
+        desc = "Git status (fzf-lua)",
+        mode = "n",
+      },
+    },
     config = function()
       require "configs.fzf-lua"
-      require("custom.diffview").setup()
     end,
   },
 
-  -- Inline hunk signs + overlay diffs against the git index, and the
-  -- manual-reference-text engine behind :Diffview's branch comparisons.
+  -- Inline hunk overlay used by the <leader>d git-status picker.
   {
     "echasnovski/mini.diff",
     cond = function()
@@ -284,7 +313,7 @@ return {
     end,
   },
 
-  -- Git UI (libgit2) — install libgit2 on the system first.
+  -- Git UI (libgit2); uses diffview for splits — install libgit2 on the system first.
   {
     "SuperBo/fugit2.nvim",
     build = false,
@@ -305,6 +334,7 @@ return {
     },
     opts = {
       width = 70,
+      external_diffview = true,
     },
     keys = {
       { "<leader>gf", "<cmd>Fugit2<cr>", desc = "Fugit2", mode = "n" },
