@@ -70,4 +70,24 @@ return {
       }
     end,
   },
+
+  -- In-Neovim floating preview: images, mermaid, video (Kitty graphics).
+  {
+    "delphinus/md-render.nvim",
+    version = "*",
+    cond = function()
+      return not vim.g.vscode
+    end,
+    ft = { "markdown" },
+    cmd = { "MdRender" },
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    keys = {
+      {
+        "<leader>md",
+        "<cmd>MdRender float<cr>",
+        desc = "Markdown floating preview",
+        mode = "n",
+      },
+    },
+  },
 }

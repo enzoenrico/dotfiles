@@ -41,7 +41,11 @@ return {
       quickfile = { enabled = true },
       scope = { enabled = true },
       scroll = { enabled = false },
-      statuscolumn = { enabled = true },
+      statuscolumn = {
+        enabled = true,
+        left = { "git", "sign", "mark" },
+        right = { "fold" },
+      },
       words = { enabled = true },
     },
   },
@@ -244,6 +248,7 @@ return {
       opts.spec = opts.spec or {}
       vim.list_extend(opts.spec, {
         { "<leader>s", group = "Swift / Xcodebuild", mode = "n" },
+        { "<leader>md", desc = "Markdown floating preview", mode = "n" },
         { "<leader>t", group = "Splits / terminal", mode = "n" },
         { "<leader>tt", desc = "Floating terminal", mode = "n" },
         { "<leader>tb", desc = "Bottom terminal", mode = "n" },

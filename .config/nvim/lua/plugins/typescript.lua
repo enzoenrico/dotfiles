@@ -58,6 +58,34 @@ return {
     end,
   },
 
+  -- VS Code / Cursor: type `>` after `<div` → `<div></div>` (and rename pairs).
+  {
+    "windwp/nvim-ts-autotag",
+    cond = function()
+      return not vim.g.vscode
+    end,
+    ft = {
+      "astro",
+      "html",
+      "javascript",
+      "javascriptreact",
+      "markdown",
+      "svelte",
+      "typescript",
+      "typescriptreact",
+      "vue",
+      "xml",
+    },
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    opts = {
+      opts = {
+        enable_close = true,
+        enable_rename = true,
+        enable_close_on_slash = false,
+      },
+    },
+  },
+
   {
     "brenoprata10/nvim-highlight-colors",
     ft = web_filetypes,

@@ -1,5 +1,8 @@
 require "nvchad.mappings"
 
+pcall(vim.keymap.del, "n", "<leader>n")
+pcall(vim.keymap.del, "n", "<leader>rn")
+
 local map = vim.keymap.set
 
 map({ "n", "x" }, "<leader>fm", function()
@@ -80,6 +83,7 @@ else
   pcall(vim.keymap.del, "n", "<leader>v")
   map("n", "<leader>th", "<C-w>s", { desc = "Horizontal split" })
   map("n", "<leader>tv", "<C-w>v", { desc = "Vertical split" })
+  map("n", "<leader>md", "<cmd>MdRender float<cr>", { desc = "Markdown floating preview" })
 
   local open_file_browser = function()
     require("configs.file_browser").open()
