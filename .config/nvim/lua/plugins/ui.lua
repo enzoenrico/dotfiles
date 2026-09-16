@@ -18,6 +18,7 @@ return {
       timeout = 5000,
       stages = "fade_in_slide_out",
       render = "compact",
+      background_colour = "#000000",
     },
   },
 
