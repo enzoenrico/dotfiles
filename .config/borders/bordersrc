@@ -22,6 +22,7 @@ options=(
 	style=round
 	width=7.0
 	hidpi=off
+	order=above
 	active_color="$active_color"
 	inactive_color="$inactive_color"
 )
