@@ -30,6 +30,15 @@ return {
       "MunifTanjim/nui.nvim",
       "rcarriga/nvim-notify",
     },
+    keys = {
+      {
+        "<leader>n",
+        function()
+          require("noice").cmd "dismiss"
+        end,
+        desc = "Dismiss notifications",
+      },
+    },
     opts = {
       routes = {
         {
