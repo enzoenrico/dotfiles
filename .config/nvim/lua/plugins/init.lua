@@ -263,22 +263,34 @@ return {
     end,
   },
 
+  -- Inline unified diff viewer (git diff shown directly in the buffer,
+  -- with a changed-files tree) — replaces a hand-rolled diffview.nvim hack.
   {
-    "sindrets/diffview.nvim",
+    "axkirillov/unified.nvim",
     cond = function()
       return not vim.g.vscode
     end,
-    cmd = {
-      "Diffview",
-      "DiffviewOpen",
-      "DiffviewClose",
-      "DiffviewToggleFiles",
-      "DiffviewFocusFiles",
-      "DiffviewRefresh",
-      "DiffviewFileHistory",
+    cmd = "Unified",
+    keys = {
+      {
+        "<leader>gd",
+        function()
+          require("unified").toggle()
+        end,
+        desc = "Toggle unified diff",
+        mode = "n",
+      },
+      {
+        "<leader>gb",
+        function()
+          require("unified").pick_commit()
+        end,
+        desc = "Unified diff: pick base commit",
+        mode = "n",
+      },
     },
     config = function()
-      require "configs.diffview"
+      require "configs.unified"
     end,
   },
 
@@ -319,7 +331,7 @@ return {
     end,
   },
 
-  -- Git UI (libgit2); uses diffview for splits — install libgit2 on the system first.
+  -- Git UI (libgit2); install libgit2 on the system first.
   {
     "SuperBo/fugit2.nvim",
     build = false,
@@ -340,7 +352,7 @@ return {
     },
     opts = {
       width = 70,
-      external_diffview = true,
+      external_diffview = false,
     },
     keys = {
       { "<leader>gf", "<cmd>Fugit2<cr>", desc = "Fugit2", mode = "n" },
