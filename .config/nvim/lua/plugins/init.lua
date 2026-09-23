@@ -294,6 +294,26 @@ return {
     end,
   },
 
+  -- Diff, file history, and a 3-way merge. The result pane is the working-tree
+  -- file. Fugit2 stays the status, commit, and rebase UI.
+  {
+    "undont/differ.nvim",
+    cond = function()
+      return not vim.g.vscode
+    end,
+    build = "make go-build",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    cmd = "Differ",
+    keys = {
+      { "<leader>gv", "<cmd>Differ<cr>", desc = "Differ", mode = "n" },
+      { "<leader>gm", "<cmd>Differ mergetool<cr>", desc = "Differ merge", mode = "n" },
+      { "<leader>gh", "<cmd>Differ log<cr>", desc = "Differ file history", mode = "n" },
+    },
+    config = function()
+      require "configs.differ"
+    end,
+  },
+
   -- Fuzzy git-status picker (stage/unstage from the list) bound to <leader>d;
   -- opening a file from it shows inline hunk highlights via mini.diff.
   {
