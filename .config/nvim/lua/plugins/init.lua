@@ -248,6 +248,7 @@ return {
       opts.spec = opts.spec or {}
       vim.list_extend(opts.spec, {
         { "<leader>n", desc = "Dismiss notifications", mode = "n" },
+        { "<leader>E", desc = "File sidebar", mode = "n" },
         { "<leader>s", group = "Swift / Xcodebuild", mode = "n" },
         { "<leader>md", desc = "Markdown floating preview", mode = "n" },
         { "<leader>t", group = "Splits / terminal", mode = "n" },

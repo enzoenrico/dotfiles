@@ -24,10 +24,27 @@ map("n", "<C-S-x>", "<C-w>x", { desc = "Swap window with next", silent = true })
 
 -- Floating terminal: <C-w>t, <C-`>, <M-J> (toggleterm.nvim; press again to hide, shell stays alive)
 
--- File browser: preserve the Cursor sidebar shortcut with Telescope.
+-- Telescope dropdown stays on <leader>e / <C-n>. This chord is the same browser.
 map("n", "<M-D-s>", function()
   require("configs.file_browser").open()
 end, { desc = "File browser (Cursor Alt+Cmd+s)" })
+
+-- VS Code-style project tree. Snacks explorer is a persistent left sidebar
+-- (tree, git status, diagnostics). Focus jumps into it; press again to close.
+local function toggle_file_sidebar()
+  local explorer = Snacks.picker.get({ source = "explorer" })[1]
+  if explorer and explorer:is_focused() then
+    explorer:close()
+    return
+  end
+  local picker = Snacks.explorer.reveal()
+  if picker then
+    picker:focus()
+  end
+end
+
+map("n", "<leader>E", toggle_file_sidebar, { desc = "File sidebar" })
+map("n", "<S-D-e>", toggle_file_sidebar, { desc = "File sidebar (Cmd+Shift+E)" })
 
 -- Find UI: same Snacks pickers as the dashboard ("home") Find File / Find Text
 map("n", "<leader>ff", function()

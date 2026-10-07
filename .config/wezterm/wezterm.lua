@@ -42,6 +42,7 @@ for _, k in ipairs({ "h", "j", "k", "l" }) do
 end
 
 table.insert(keys, { key = "s", mods = "ALT|SUPER", action = send_modified_key("s", "ALT|SUPER") })
+table.insert(keys, { key = "e", mods = "SUPER|SHIFT", action = send_modified_key("e", "SUPER|SHIFT") })
 table.insert(keys, { key = "]", mods = "SUPER", action = send_modified_key("]", "SUPER") })
 table.insert(keys, { key = "]", mods = "SUPER|SHIFT", action = send_modified_key("]", "SUPER|SHIFT") })
 table.insert(keys, { key = "p", mods = "SUPER", action = send_modified_key("p", "SUPER") })
