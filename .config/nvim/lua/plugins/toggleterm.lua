@@ -2,10 +2,6 @@ local float = function()
   require("configs.toggleterm").toggle_float()
 end
 
-local opencode_float = function()
-  require("configs.toggleterm").open_opencode_with_current_file()
-end
-
 local agent_float = function()
   require("configs.toggleterm").open_agent_with_current_file()
 end
@@ -31,13 +27,12 @@ return {
       "ToggleTermSendVisualLines",
     },
     keys = {
-      { "<leader>tt", float, mode = { "n", "t" }, desc = "Toggle floating terminal" },
+      { "<C-w>t", float, mode = { "n", "t" }, desc = "Toggle floating terminal" },
       { "<C-`>", float, mode = { "n", "t" }, desc = "Toggle floating terminal (Cursor panel)" },
       { "<M-J>", float, mode = { "n", "t" }, desc = "Toggle floating terminal (Shift+Alt+j parity)" },
       { "<leader>tb", toggle("horizontal", 2), mode = { "n", "t" }, desc = "Toggle bottom terminal" },
       { "<leader>tV", toggle("vertical", 3), mode = { "n", "t" }, desc = "Toggle vertical terminal" },
-      { "<leader>co", opencode_float, mode = { "n", "t" }, desc = "Toggle opencode for current file" },
-      { "<leader>ca", agent_float, mode = { "n", "t" }, desc = "Toggle agent for current file" },
+      { "<C-w>ca", agent_float, mode = { "n", "t" }, desc = "Toggle Cursor agent for current file" },
     },
     config = function()
       require("configs.toggleterm").setup()

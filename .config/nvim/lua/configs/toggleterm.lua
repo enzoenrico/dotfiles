@@ -1,8 +1,7 @@
 local M = {}
 
---- Terminal #1: primary float (leader tt). Toggle hides the window; the shell keeps running.
+--- Terminal #1: primary float (Ctrl-w t). Toggle hides the window; the shell keeps running.
 M.float_id = 1
-M.opencode_id = 4
 M.agent_id = 5
 
 M.opts = {
@@ -135,12 +134,6 @@ local function toggle_or_launch(id, display_name, command_builder)
   end
 
   launch_ai_float(id, display_name, command_builder)
-end
-
-function M.open_opencode_with_current_file()
-  toggle_or_launch(M.opencode_id, "opencode", function(relative)
-    return table.concat({ "opencode", "--prompt", shellescape("@" .. relative) }, " ")
-  end)
 end
 
 function M.open_agent_with_current_file()

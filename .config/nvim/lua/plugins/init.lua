@@ -251,13 +251,12 @@ return {
         { "<leader>s", group = "Swift / Xcodebuild", mode = "n" },
         { "<leader>md", desc = "Markdown floating preview", mode = "n" },
         { "<leader>t", group = "Splits / terminal", mode = "n" },
-        { "<leader>tt", desc = "Floating terminal", mode = "n" },
         { "<leader>tb", desc = "Bottom terminal", mode = "n" },
         { "<leader>tV", desc = "Vertical terminal", mode = "n" },
+        { "<C-w>t", desc = "Toggle floating terminal", mode = { "n", "t" } },
+        { "<C-w>ca", desc = "Toggle Cursor agent for current file", mode = { "n", "t" } },
         { "<leader>g", group = "Git", mode = "n" },
         { "<leader>c", group = "Code AI", mode = "n" },
-        { "<leader>co", desc = "Opencode current file", mode = "n" },
-        { "<leader>ca", desc = "Agent current file", mode = "n" },
       })
       return opts
     end,

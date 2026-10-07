@@ -22,7 +22,7 @@ map("n", "<C-S-Right>", "<C-w>L", { desc = "Move window far right", silent = tru
 -- Swap window with next
 map("n", "<C-S-x>", "<C-w>x", { desc = "Swap window with next", silent = true })
 
--- Floating terminal: <C-`>, <M-J>, <leader>tt (toggleterm.nvim; press again to hide, shell stays alive)
+-- Floating terminal: <C-w>t, <C-`>, <M-J> (toggleterm.nvim; press again to hide, shell stays alive)
 
 -- File browser: preserve the Cursor sidebar shortcut with Telescope.
 map("n", "<M-D-s>", function()

@@ -28,7 +28,7 @@ Repeat for:
 | `<D-p>` / `<S-D-p>` | Quick open / command palette (Telescope) |
 | `<C-S-x>`    | Swap with next split (`<C-w>x`) |
 | `<leader>th` / `<leader>tv` | Horizontal / vertical **buffer** split |
-| `<leader>tt` | Toggle bottom terminal |
+| `<C-w>t` | Toggle floating terminal |
 | `<leader>k`  | Close **window** only (`:close`); `<leader>x` closes **buffer** |
 | `<C-\`>`     | Bottom terminal; `<A-h>` (NvChad) |
 
