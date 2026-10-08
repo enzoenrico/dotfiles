@@ -120,6 +120,15 @@ return {
       return opts
     end,
     config = function(_, opts)
+      -- lazy.nvim puts stdpath("data")/site ahead of plugins. A leftover
+      -- tree-sitter-swift 0.7.3 there has no "#available" node, while this
+      -- plugin's highlights.scm still queries it. snacks.nvim then throws
+      -- inside the picker. Load the parser these queries were written for.
+      local bundled = vim.fn.stdpath "data" .. "/lazy/nvim-treesitter/parser/swift.so"
+      if vim.uv.fs_stat(bundled) then
+        vim.treesitter.language.add("swift", { path = bundled })
+      end
+
       local ts = require "nvim-treesitter"
       ts.setup(opts)
 

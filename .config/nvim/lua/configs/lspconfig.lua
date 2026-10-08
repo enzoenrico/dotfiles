@@ -37,9 +37,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
     if not client then
       return
     end
-    vim.keymap.set({ "n" }, { "K", "<S-k>" }, show_cursor_info, {
-      buffer = args.buf,
-      desc = "Documentation under cursor",
-    })
+    for _, lhs in ipairs { "K", "<S-k>" } do
+      vim.keymap.set("n", lhs, show_cursor_info, {
+        buffer = args.buf,
+        desc = "Documentation under cursor",
+      })
+    end
   end,
 })
