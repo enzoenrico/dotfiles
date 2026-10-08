@@ -40,6 +40,16 @@ return {
       },
     },
     opts = {
+      lsp = {
+        hover = { silent = true },
+        signature = {
+          auto_open = { enabled = false },
+        },
+        -- Keep the docs float from taking the cursor (mouse or wincmds).
+        documentation = {
+          opts = { focusable = false },
+        },
+      },
       routes = {
         {
           filter = {

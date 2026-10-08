@@ -88,7 +88,6 @@ else
   local open_file_browser = function()
     require("configs.file_browser").open()
   end
-  map("n", "<C-n>", open_file_browser, { desc = "File browser" })
   map("n", "<leader>e", open_file_browser, { desc = "File browser" })
 
   require "cursor_parity"

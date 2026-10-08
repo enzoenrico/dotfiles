@@ -24,7 +24,7 @@ map("n", "<C-S-x>", "<C-w>x", { desc = "Swap window with next", silent = true })
 
 -- Floating terminal: <C-w>t, <C-`>, <M-J> (toggleterm.nvim; press again to hide, shell stays alive)
 
--- Telescope dropdown stays on <leader>e / <C-n>. This chord is the same browser.
+-- Telescope dropdown stays on <leader>e. This chord is the same browser.
 map("n", "<M-D-s>", function()
   require("configs.file_browser").open()
 end, { desc = "File browser (Cursor Alt+Cmd+s)" })
@@ -43,6 +43,11 @@ local function toggle_file_sidebar()
   end
 end
 
+-- Global map so the terminal keeps Ctrl+Enter distinct from Enter.
+-- The sidebar and file browser override this on their own buffers.
+map({ "n", "i" }, "<C-CR>", "<Nop>", { desc = "Ctrl+Enter" })
+
+map("n", "<C-n>", toggle_file_sidebar, { desc = "File sidebar" })
 map("n", "<leader>E", toggle_file_sidebar, { desc = "File sidebar" })
 map("n", "<S-D-e>", toggle_file_sidebar, { desc = "File sidebar (Cmd+Shift+E)" })
 

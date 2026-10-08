@@ -6,6 +6,10 @@ return {
     version = "1.*",
     lazy = false,
     opts = function(_, opts)
+      opts.completion = vim.tbl_deep_extend("force", opts.completion or {}, {
+        documentation = { auto_show = false },
+      })
+
       opts.keymap = vim.tbl_deep_extend("force", opts.keymap or {}, {
         preset = "none",
         ["<C-j>"] = { "select_next", "fallback" },

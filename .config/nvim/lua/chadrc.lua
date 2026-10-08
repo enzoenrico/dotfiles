@@ -37,4 +37,9 @@ M.ui = {
   },
 }
 
+-- Signature help only from Shift-K (normal-mode K), not while typing.
+M.lsp = {
+  signature = false,
+}
+
 return M

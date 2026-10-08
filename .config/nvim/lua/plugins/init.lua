@@ -1,5 +1,36 @@
 local mac = vim.fn.has "macunix" == 1
 
+local function explorer_open_side(picker, item)
+  if not item then
+    return
+  end
+  if item.dir then
+    require("snacks.explorer.actions").actions.confirm(picker, item, {})
+    return
+  end
+  require("configs.open_side").open(item.file, picker.main)
+end
+
+local function file_browser_open_side(prompt_bufnr)
+  local action_state = require "telescope.actions.state"
+  local actions = require "telescope.actions"
+  local entry = action_state.get_selected_entry()
+  if not entry then
+    return
+  end
+  local fb_utils = require "telescope._extensions.file_browser.utils"
+  if entry.Path and fb_utils.is_dir(entry.Path) then
+    require("telescope._extensions.file_browser.actions").open_dir(prompt_bufnr)
+    return
+  end
+  local path = entry.path or entry.filename
+  local origin = action_state.get_current_picker(prompt_bufnr).original_win_id
+  actions.close(prompt_bufnr)
+  vim.schedule(function()
+    require("configs.open_side").open(path, origin)
+  end)
+end
+
 return {
   {
     "stevearc/conform.nvim",
@@ -34,7 +65,24 @@ return {
       picker = {
         enabled = true,
         sources = {
-          explorer = { hidden = true },
+          explorer = {
+            hidden = true,
+            actions = {
+              open_side = explorer_open_side,
+            },
+            win = {
+              list = {
+                keys = {
+                  ["<C-CR>"] = { "open_side", desc = "Open file to the side" },
+                },
+              },
+              input = {
+                keys = {
+                  ["<C-CR>"] = { "open_side", mode = { "i", "n" }, desc = "Open file to the side" },
+                },
+              },
+            },
+          },
           files = { hidden = true },
         },
       },
@@ -218,6 +266,10 @@ return {
               end,
               ["<PageUp>"] = actions.preview_scrolling_up,
               ["<PageDown>"] = actions.preview_scrolling_down,
+              ["<C-CR>"] = file_browser_open_side,
+            },
+            i = {
+              ["<C-CR>"] = file_browser_open_side,
             },
           },
         },
