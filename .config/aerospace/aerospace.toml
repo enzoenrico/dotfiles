@@ -288,6 +288,7 @@ run = ['move-node-to-workspace 􀪏']
 
 # === default floating ===
 [[on-window-detected]]
+if = 'true'
 run = [
   'layout floating',
 ]
