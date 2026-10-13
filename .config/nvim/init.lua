@@ -121,6 +121,8 @@ vim.api.nvim_create_autocmd({ "FocusGained", "VimResume" }, {
   end,
 })
 
+require("custom.home").setup()
+
 vim.schedule(function()
   require "mappings"
 end)

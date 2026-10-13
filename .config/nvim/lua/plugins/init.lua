@@ -54,7 +54,8 @@ return {
     ---@type snacks.Config
     opts = {
       bigfile = { enabled = true },
-      dashboard = { enabled = true },
+      -- Start screen is lua/custom/home.lua. Snacks.dashboard.pick still resolves files and grep.
+      dashboard = { enabled = false },
       explorer = {
         enabled = true,
         replace_netrw = false,
@@ -508,7 +509,7 @@ return {
     "arnamak/stay-centered.nvim",
     lazy = false,
     opts = {
-      skip_filetypes = { "lua", "typescript" },
+      skip_filetypes = { "lua", "typescript", "nvim_home" },
     },
   },
   {
