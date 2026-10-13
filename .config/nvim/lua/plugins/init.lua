@@ -1,14 +1,7 @@
 local mac = vim.fn.has "macunix" == 1
 
-local function explorer_open_side(picker, item)
-  if not item then
-    return
-  end
-  if item.dir then
-    require("snacks.explorer.actions").actions.confirm(picker, item, {})
-    return
-  end
-  require("configs.open_side").open(item.file, picker.main)
+local function picker_open_side(picker, item)
+  require("configs.open_side").from_picker(picker, item)
 end
 
 local function file_browser_open_side(prompt_bufnr)
@@ -65,24 +58,27 @@ return {
       notifier = { enabled = false },
       picker = {
         enabled = true,
+        actions = {
+          open_side = picker_open_side,
+        },
+        win = {
+          input = {
+            keys = {
+              -- Kitty sends Ctrl+Enter as <C-kEnter>. <C-CR> is the other encoding.
+              ["<C-CR>"] = { "open_side", mode = { "i", "n" }, desc = "Open in a new split" },
+              ["<C-kEnter>"] = { "open_side", mode = { "i", "n" }, desc = "Open in a new split" },
+            },
+          },
+          list = {
+            keys = {
+              ["<C-CR>"] = { "open_side", mode = { "n", "i" }, desc = "Open in a new split" },
+              ["<C-kEnter>"] = { "open_side", mode = { "n", "i" }, desc = "Open in a new split" },
+            },
+          },
+        },
         sources = {
           explorer = {
             hidden = true,
-            actions = {
-              open_side = explorer_open_side,
-            },
-            win = {
-              list = {
-                keys = {
-                  ["<C-CR>"] = { "open_side", desc = "Open file to the side" },
-                },
-              },
-              input = {
-                keys = {
-                  ["<C-CR>"] = { "open_side", mode = { "i", "n" }, desc = "Open file to the side" },
-                },
-              },
-            },
           },
           files = { hidden = true },
         },
@@ -277,9 +273,11 @@ return {
               ["<PageUp>"] = actions.preview_scrolling_up,
               ["<PageDown>"] = actions.preview_scrolling_down,
               ["<C-CR>"] = file_browser_open_side,
+              ["<C-kEnter>"] = file_browser_open_side,
             },
             i = {
               ["<C-CR>"] = file_browser_open_side,
+              ["<C-kEnter>"] = file_browser_open_side,
             },
           },
         },

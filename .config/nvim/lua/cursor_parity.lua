@@ -44,8 +44,10 @@ local function toggle_file_sidebar()
 end
 
 -- Global map so the terminal keeps Ctrl+Enter distinct from Enter.
--- The sidebar and file browser override this on their own buffers.
+-- Kitty encodes that chord as <C-kEnter>; some terminals use <C-CR>.
+-- The file picker, sidebar, and file browser override this on their own buffers.
 map({ "n", "i" }, "<C-CR>", "<Nop>", { desc = "Ctrl+Enter" })
+map({ "n", "i" }, "<C-kEnter>", "<Nop>", { desc = "Ctrl+Enter" })
 
 map("n", "<C-n>", toggle_file_sidebar, { desc = "File sidebar" })
 map("n", "<leader>E", toggle_file_sidebar, { desc = "File sidebar" })

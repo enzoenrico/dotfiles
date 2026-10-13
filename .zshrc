@@ -121,3 +121,6 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # opencode
 [[ -d "$HOME/.opencode/bin" ]] && export PATH="$HOME/.opencode/bin:$PATH"
 export EDITOR=nvim
+
+#zoxide setup
+eval "$(zoxide init zsh)"
