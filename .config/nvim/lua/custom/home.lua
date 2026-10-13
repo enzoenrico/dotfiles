@@ -1,16 +1,10 @@
---- Grok-style start screen: animated mark, recent files, composer, shortcut bar.
+--- Grok-style start screen: fastfetch animation, recent files, composer, shortcut bar.
 --- Opens on a bare `nvim`. `:Home` brings it back. Pickers stay on Snacks.
+--- The hero is the anifetch clip (see custom/home_anim.lua).
 
 local M = {}
 
-local WORDMARK = {
-  "███╗   ██╗██╗   ██╗██╗███╗   ███╗",
-  "████╗  ██║██║   ██║██║████╗ ████║",
-  "██╔██╗ ██║██║   ██║██║██╔████╔██║",
-  "██║╚██╗██║╚██╗ ██╔╝██║██║╚██╔╝██║",
-  "██║ ╚████║ ╚████╔╝ ██║██║ ╚═╝ ██║",
-  "╚═╝  ╚═══╝  ╚═══╝  ╚═╝╚═╝     ╚═╝",
-}
+local anim = require "custom.home_anim"
 
 local ACTIONS = {
   { id = "files", key = "f", label = "Find file" },
@@ -158,17 +152,7 @@ function M.apply_highlights()
   set("HomeSelectedAccent", { fg = pal.accent, bg = pal.selected, bold = true })
   set("HomeTrail1", { fg = mix(pal.accent, pal.peak, 0.45) })
   set("HomeTrail2", { fg = mix(pal.trough, pal.accent, 0.55) })
-
-  for i = 0, 15 do
-    local peak = 0.5 + 0.5 * math.cos((i / 16) * 2 * math.pi)
-    local fg
-    if peak < 0.55 then
-      fg = mix(pal.trough, pal.accent, peak / 0.55)
-    else
-      fg = mix(pal.accent, pal.peak, (peak - 0.55) / 0.45)
-    end
-    set("HomeWave" .. i, { fg = fg, bold = true })
-  end
+  anim.apply_highlights()
 end
 
 local glyphs
@@ -225,29 +209,6 @@ end
 local function center(spans, width)
   local left = math.max(0, math.floor((width - spans_width(spans)) / 2))
   return place(spans, left, width)
-end
-
-local function wave_spans(text, frame)
-  local spans = {}
-  local col = 0
-  for _, ch in ipairs(chars_of(text)) do
-    local group = (col - frame) % 16
-    spans[#spans + 1] = { text = ch, hl = "HomeWave" .. group }
-    col = col + strwidth(ch)
-  end
-  return spans
-end
-
-local function wordmark_lines()
-  local max = 0
-  for _, line in ipairs(WORDMARK) do
-    max = math.max(max, strwidth(line))
-  end
-  local lines = {}
-  for _, line in ipairs(WORDMARK) do
-    lines[#lines + 1] = line .. string.rep(" ", max - strwidth(line))
-  end
-  return lines, max
 end
 
 local function orbit_spans(frame, content_w, rows)
@@ -579,22 +540,34 @@ local function compose(view, spec, recents, actions, query)
   end
 
   if spec.orbit then
-    local rows = orbit_spans(view.tick or 0, content_w, spec.orbit_rows)
-    if rows then
-      for _, spans in ipairs(rows) do
-        add(spans, "orbit")
+    local cols = anim.cols_for(spec.orbit_rows, content_w)
+    spec.anim_cols = cols
+    local drew = false
+    if cols and not anim.absent() then
+      local frame = anim.frame(view.tick or 0, cols, spec.orbit_rows)
+      if frame then
+        for _, spans in ipairs(frame) do
+          add(center(spans, content_w), "orbit")
+        end
+      else
+        for _ = 1, spec.orbit_rows do
+          add({}, "orbit")
+        end
       end
+      drew = true
+    end
+    if not drew then
+      local rows = orbit_spans(view.tick or 0, content_w, spec.orbit_rows)
+      if rows then
+        for _, spans in ipairs(rows) do
+          add(spans, "orbit")
+        end
+        drew = true
+      end
+    end
+    if drew then
       blank()
     end
-  end
-
-  if spec.wordmark then
-    local lines = wordmark_lines()
-    for _, line in ipairs(lines) do
-      add(center(wave_spans(line, view.tick or 0), content_w), "word")
-    end
-  else
-    add(center(wave_spans("nvim", view.tick or 0), content_w), "word")
   end
 
   if spec.subtitle then
@@ -694,7 +667,6 @@ function M.layout(view)
     content_w = math.max(8, width - 2)
   end
   local left = math.max(0, math.floor((width - content_w) / 2))
-  local mark_w = select(2, wordmark_lines())
   local recents, actions, query = filtered_items(view)
 
   local chrome_gap = height >= 16
@@ -704,9 +676,8 @@ function M.layout(view)
 
   local spec = {
     content_w = content_w,
-    orbit = mark_w <= content_w and content_w >= 36,
-    orbit_rows = 7,
-    wordmark = mark_w <= content_w,
+    orbit = content_w >= 36,
+    orbit_rows = 12,
     subtitle = true,
     headers = true,
     recent_n = 5,
@@ -721,13 +692,14 @@ function M.layout(view)
       s.recent_n = 3
     end,
     function(s)
-      s.orbit_rows = 5
+      if s.orbit_rows > 8 then
+        s.orbit_rows = 8
+      end
     end,
     function(s)
-      s.orbit = false
-    end,
-    function(s)
-      s.wordmark = false
+      if s.orbit_rows > 6 then
+        s.orbit_rows = 6
+      end
     end,
     function(s)
       s.recent_n = 1
@@ -738,6 +710,9 @@ function M.layout(view)
     end,
     function(s)
       s.recent_n = 0
+    end,
+    function(s)
+      s.orbit = false
     end,
     function(s)
       s.action_ids = { "files", "grep", "new", "quit" }
@@ -821,6 +796,7 @@ function M.layout(view)
     selected = selected,
     logo = logo,
     content_w = content_w,
+    anim = spec.orbit and spec.anim_cols and { cols = spec.anim_cols, rows = spec.orbit_rows } or nil,
   }
 end
 
@@ -985,7 +961,6 @@ local function apply_layout(laid, logo_only)
     end
     vim.api.nvim_buf_set_lines(buf, orbit_start - 1, orbit_end, false, chunk)
   elseif not (logo_only and orbit_n == 0) then
-    -- Wordmark-only frames keep the same text; just refresh the wave marks.
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, texts)
     logo_only = false
   end
@@ -1030,7 +1005,17 @@ render_full = function()
   end
   state.recents = collect_recents(vim.fn.getcwd(), 8)
   local laid = M.layout(view_of())
+  if laid.anim and anim.warm(laid.anim.cols, laid.anim.rows) then
+    laid = M.layout(view_of())
+  end
   apply_layout(laid, false)
+  if laid.anim and not anim.frame(0, laid.anim.cols, laid.anim.rows) and not anim.absent() then
+    anim.ensure(laid.anim.cols, laid.anim.rows, function()
+      if state.open then
+        render_full()
+      end
+    end)
+  end
   if state.win and vim.api.nvim_win_is_valid(state.win) then
     state.laid_width = vim.api.nvim_win_get_width(state.win)
     state.laid_height = vim.api.nvim_win_get_height(state.win)
@@ -1136,7 +1121,7 @@ local function start_timer()
     return
   end
   state.timer = vim.uv.new_timer()
-  state.timer:start(100, 90, function()
+  state.timer:start(100, 100, function()
     if state.ticking then
       return
     end
