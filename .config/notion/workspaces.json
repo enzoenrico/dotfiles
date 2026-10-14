@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "environments": {
+    "prod": {
+      "3bb24fe6-4696-45ea-a035-b23311c80f07": {
+        "id": "3bb24fe6-4696-45ea-a035-b23311c80f07",
+        "name": "Enzo Enrico's Notion"
+      }
+    }
+  }
+}
