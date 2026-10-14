@@ -164,6 +164,12 @@ function M.from_picker(picker, item)
     if not open_buf(buf, anchor) then
       return
     end
+    -- Focusing the new pane fires WinEnter, and the sidebar retargets its
+    -- main editor to that pane. Point main back at the window that was
+    -- already open so Enter still replaces that window.
+    if anchor and vim.api.nvim_win_is_valid(anchor) then
+      picker.main = anchor
+    end
     if type(pos) == "table" and type(pos[1]) == "number" and pos[1] > 0 then
       pcall(vim.api.nvim_win_set_cursor, vim.api.nvim_get_current_win(), { pos[1], pos[2] or 0 })
     end

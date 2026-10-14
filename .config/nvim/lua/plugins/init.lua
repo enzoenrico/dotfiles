@@ -64,15 +64,15 @@ return {
         win = {
           input = {
             keys = {
-              -- Kitty sends Ctrl+Enter as <C-kEnter>. <C-CR> is the other encoding.
-              ["<C-CR>"] = { "open_side", mode = { "i", "n" }, desc = "Open in a new split" },
-              ["<C-kEnter>"] = { "open_side", mode = { "i", "n" }, desc = "Open in a new split" },
+              -- Option+Enter. Kitty sends CSI 13;3 u (<M-CR>). <M-kEnter> is the other encoding.
+              ["<M-CR>"] = { "open_side", mode = { "i", "n" }, desc = "Open in a new split" },
+              ["<M-kEnter>"] = { "open_side", mode = { "i", "n" }, desc = "Open in a new split" },
             },
           },
           list = {
             keys = {
-              ["<C-CR>"] = { "open_side", mode = { "n", "i" }, desc = "Open in a new split" },
-              ["<C-kEnter>"] = { "open_side", mode = { "n", "i" }, desc = "Open in a new split" },
+              ["<M-CR>"] = { "open_side", mode = { "n", "i" }, desc = "Open in a new split" },
+              ["<M-kEnter>"] = { "open_side", mode = { "n", "i" }, desc = "Open in a new split" },
             },
           },
         },
@@ -272,12 +272,12 @@ return {
               end,
               ["<PageUp>"] = actions.preview_scrolling_up,
               ["<PageDown>"] = actions.preview_scrolling_down,
-              ["<C-CR>"] = file_browser_open_side,
-              ["<C-kEnter>"] = file_browser_open_side,
+              ["<M-CR>"] = file_browser_open_side,
+              ["<M-kEnter>"] = file_browser_open_side,
             },
             i = {
-              ["<C-CR>"] = file_browser_open_side,
-              ["<C-kEnter>"] = file_browser_open_side,
+              ["<M-CR>"] = file_browser_open_side,
+              ["<M-kEnter>"] = file_browser_open_side,
             },
           },
         },

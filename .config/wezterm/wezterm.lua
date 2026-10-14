@@ -47,6 +47,8 @@ table.insert(keys, { key = "]", mods = "SUPER", action = send_modified_key("]", 
 table.insert(keys, { key = "]", mods = "SUPER|SHIFT", action = send_modified_key("]", "SUPER|SHIFT") })
 table.insert(keys, { key = "p", mods = "SUPER", action = send_modified_key("p", "SUPER") })
 table.insert(keys, { key = "p", mods = "SUPER|SHIFT", action = send_modified_key("p", "SUPER|SHIFT") })
+-- Option+Enter → Neovim <M-CR> / <M-kEnter> (kitty keyboard protocol is on).
+table.insert(keys, { key = "Enter", mods = "ALT", action = send_modified_key("Enter", "ALT") })
 
 config.keys = keys
 
