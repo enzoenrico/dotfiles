@@ -2,8 +2,8 @@
 local M = {}
 
 M.themes = {
-  dark = "catppuccin",
-  light = "catppuccin-latte",
+  dark = "groknight",
+  light = "grokday",
 }
 
 function M.detect_system_theme()

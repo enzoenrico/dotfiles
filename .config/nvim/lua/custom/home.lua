@@ -1,5 +1,7 @@
---- Grok-style start screen: fastfetch animation, recent files, composer, shortcut bar.
+--- Grok-style start screen: fastfetch animation, recent files, actions.
 --- Opens on a bare `nvim`. `:Home` brings it back. Pickers stay on Snacks.
+--- The buffer is a plain read-only buffer: no input bar, no key capture. Every
+--- normal keybind works; j/k hop between rows and <CR> opens the row.
 --- The hero is the anifetch clip (see custom/home_anim.lua).
 
 local M = {}
@@ -7,13 +9,13 @@ local M = {}
 local anim = require "custom.home_anim"
 
 local ACTIONS = {
-  { id = "files", key = "f", label = "Find file" },
-  { id = "grep", key = "g", label = "Find text" },
-  { id = "recent", key = "r", label = "Recent files" },
-  { id = "tree", key = "e", label = "File sidebar" },
-  { id = "new", key = "n", label = "New file" },
-  { id = "config", key = "c", label = "Config" },
-  { id = "quit", key = "q", label = "Quit" },
+  { id = "files", key = "SPC ff", label = "Find file" },
+  { id = "grep", key = "SPC fw", label = "Find text" },
+  { id = "recent", key = "", label = "Recent files" },
+  { id = "tree", key = "SPC E", label = "File sidebar" },
+  { id = "new", key = ":enew", label = "New file" },
+  { id = "config", key = "", label = "Config" },
+  { id = "quit", key = ":qa", label = "Quit" },
 }
 
 local ns = vim.api.nvim_create_namespace "nvim_home"
@@ -22,13 +24,13 @@ local ns_logo = vim.api.nvim_create_namespace "nvim_home_logo"
 local state = {
   open = false,
   tick = 0,
-  query = "",
   selected = 1,
   reduce_motion = false,
   forcing = false,
 }
 
 local render_full
+local refresh
 local tick
 local place_cursor
 local activate
@@ -312,10 +314,9 @@ local function row_spans(item, content_w, selected)
   end
   meta = string.rep(" ", meta_w - strwidth(meta)) .. meta
   local key = item.key or ""
-  if strwidth(key) > 1 then
-    key = key:sub(1, 1)
-  end
-  local right_w = meta_w + 2 + math.max(1, strwidth(key))
+  local key_w = 6
+  key = string.rep(" ", math.max(0, key_w - strwidth(key))) .. key
+  local right_w = meta_w + 2 + key_w
   local prefix = "  " .. g.bullet .. "  "
   local label_max = content_w - strwidth(prefix) - right_w
   local label = item.tail and fit_end(item.label, label_max) or item.label
@@ -341,141 +342,8 @@ local function row_spans(item, content_w, selected)
     { text = string.rep(" ", gap), hl = fill_hl },
     { text = meta, hl = dim_hl },
     { text = "  ", hl = fill_hl },
-    { text = key == "" and " " or key, hl = key == "" and dim_hl or accent_hl },
+    { text = key, hl = dim_hl },
   }
-end
-
-local function composer_box(content_w, query, label, placeholder)
-  local box = marks().box
-  local safe = fit_end(label, math.max(1, content_w - 6))
-  local dashes = math.max(0, content_w - strwidth(safe) - 5)
-  local top = {
-    { text = box.tl .. box.h .. " ", hl = "HomeBorderFocus" },
-    { text = safe, hl = "HomeAccent" },
-    { text = " " .. string.rep(box.h, dashes) .. box.tr, hl = "HomeBorderFocus" },
-  }
-  local bottom = {
-    { text = box.bl .. string.rep(box.h, math.max(0, content_w - 2)) .. box.br, hl = "HomeBorderFocus" },
-  }
-
-  local inner = content_w - 2
-  local body_w = math.max(1, inner - 2)
-  local prefix = "› "
-  if strwidth(prefix) ~= 2 then
-    prefix = "> "
-  end
-  local shown = query
-  local shown_hl = "HomeText"
-  if query == "" then
-    shown = placeholder or "Press a key, or / to filter"
-    shown_hl = "HomeDim"
-  end
-  local room = math.max(1, body_w - strwidth(prefix))
-  if strwidth(shown) > room then
-    shown = fit_end(shown, room)
-  end
-  local gap = body_w - strwidth(prefix) - strwidth(shown)
-  if gap < 0 then
-    gap = 0
-  end
-  local mid = {
-    { text = box.v, hl = "HomeBorderFocus" },
-    { text = " " },
-    { text = prefix, hl = "HomeAccent", cursor_after = query == "" },
-    { text = shown, hl = shown_hl, cursor_after = query ~= "" },
-    { text = string.rep(" ", gap) },
-    { text = " " },
-    { text = box.v, hl = "HomeBorderFocus" },
-  }
-  return top, mid, bottom
-end
-
-local function shortcut_bar(win_w, cwd_base, branch)
-  local full = {
-    { "↵", " open" },
-    { "↑↓", " move" },
-    { "/", " filter" },
-    { "f", " files" },
-    { "g", " text" },
-    { "e", " tree" },
-    { "n", " new" },
-    { "q", " quit" },
-  }
-  local medium = {
-    { "↵", " open" },
-    { "↑↓", " move" },
-    { "f", " files" },
-    { "g", " text" },
-    { "e", " tree" },
-    { "n", " new" },
-    { "q", " quit" },
-  }
-  local function groups(with_labels)
-    if with_labels == "full" then
-      return full
-    end
-    if with_labels == "medium" then
-      return medium
-    end
-    return {
-      { "↵", "" },
-      { "↑↓", "" },
-      { "f", "" },
-      { "g", "" },
-      { "e", "" },
-      { "n", "" },
-      { "q", "" },
-    }
-  end
-
-  local right_spans = {
-    { text = cwd_base, hl = "HomeDim" },
-  }
-  if branch and branch ~= "" then
-    right_spans[#right_spans + 1] = { text = " · ", hl = "HomeBorder" }
-    right_spans[#right_spans + 1] = { text = branch, hl = "HomeAccent" }
-  end
-  local right_w = spans_width(right_spans)
-
-  local function build(with_labels)
-    local spans = { { text = " " } }
-    local keys = groups(with_labels)
-    for i, pair in ipairs(keys) do
-      if i > 1 then
-        spans[#spans + 1] = { text = "  ", hl = "HomeDim" }
-      end
-      spans[#spans + 1] = { text = pair[1], hl = "HomeAccent" }
-      if pair[2] ~= "" then
-        spans[#spans + 1] = { text = pair[2], hl = "HomeDim" }
-      end
-    end
-    return spans
-  end
-
-  local left = build "full"
-  if 1 + spans_width(left) + 2 + right_w > win_w then
-    left = build "medium"
-  end
-  if 1 + spans_width(left) + 2 + right_w > win_w then
-    left = build(false)
-  end
-  local gap = win_w - spans_width(left) - right_w - 1
-  local spans = {}
-  for _, span in ipairs(left) do
-    spans[#spans + 1] = span
-  end
-  if gap > 0 then
-    spans[#spans + 1] = { text = string.rep(" ", gap) }
-  end
-  for _, span in ipairs(right_spans) do
-    spans[#spans + 1] = span
-  end
-  spans[#spans + 1] = { text = " " }
-  local extra = win_w - spans_width(spans)
-  if extra > 0 then
-    spans[#spans + 1] = { text = string.rep(" ", extra) }
-  end
-  return spans
 end
 
 local function subtitle_spans(view, content_w)
@@ -508,28 +376,10 @@ local function subtitle_spans(view, content_w)
 end
 
 local function filtered_items(view)
-  local query = vim.trim(view.query or ""):lower()
-  local function hit(label)
-    return query == "" or label:lower():find(query, 1, true) ~= nil
-  end
-
-  local recents = {}
-  for _, recent in ipairs(view.recents or {}) do
-    if hit(recent.label) or hit(recent.path or "") then
-      recents[#recents + 1] = recent
-    end
-  end
-
-  local actions = {}
-  for _, action in ipairs(ACTIONS) do
-    if hit(action.label) then
-      actions[#actions + 1] = action
-    end
-  end
-  return recents, actions, query
+  return view.recents or {}, ACTIONS
 end
 
-local function compose(view, spec, recents, actions, query)
+local function compose(view, spec, recents, actions)
   local content_w = spec.content_w
   local body = {}
   local function add(spans, kind)
@@ -591,19 +441,11 @@ local function compose(view, spec, recents, actions, query)
     end
   end
 
-  if query ~= "" and #shown_recent == 0 and #shown_actions == 0 then
-    shown_actions[1] = {
-      id = "search",
-      key = "",
-      label = "Search files for " .. vim.trim(view.query),
-    }
-  end
-
   local entries = {}
   for i, recent in ipairs(shown_recent) do
     entries[#entries + 1] = {
       id = "edit",
-      key = tostring(i),
+      key = "",
       label = recent.label,
       meta = recent.meta,
       path = recent.path,
@@ -616,7 +458,6 @@ local function compose(view, spec, recents, actions, query)
       key = action.key,
       label = action.label,
       meta = "",
-      path = action.id == "search" and vim.trim(view.query) or nil,
       tail = false,
     }
   end
@@ -667,12 +508,9 @@ function M.layout(view)
     content_w = math.max(8, width - 2)
   end
   local left = math.max(0, math.floor((width - content_w) / 2))
-  local recents, actions, query = filtered_items(view)
+  local recents, actions = filtered_items(view)
 
-  local chrome_gap = height >= 16
-  local chrome_status = height >= 10
-  local chrome_n = (chrome_gap and 1 or 0) + 3 + (chrome_status and 1 or 0)
-  local body_h = math.max(0, height - chrome_n)
+  local body_h = height
 
   local spec = {
     content_w = content_w,
@@ -719,13 +557,13 @@ function M.layout(view)
     end,
   }
 
-  local body, selected = compose(view, spec, recents, actions, query)
+  local body, selected = compose(view, spec, recents, actions)
   for _, step in ipairs(steps) do
     if #body <= body_h then
       break
     end
     step(spec)
-    body, selected = compose(view, spec, recents, actions, query)
+    body, selected = compose(view, spec, recents, actions)
   end
   while #body > body_h and #body > 0 do
     table.remove(body)
@@ -748,6 +586,7 @@ function M.layout(view)
     end
     if item then
       item.line = #span_lines
+      item.col = left + 2
       items[#items + 1] = item
     end
   end
@@ -765,23 +604,6 @@ function M.layout(view)
     push_blank()
   end
 
-  if chrome_gap then
-    push_blank()
-  end
-  local base = vim.fn.fnamemodify(view.cwd or "", ":t")
-  if base == "" then
-    base = "nvim"
-  end
-  local placeholder = view.filtering and "Filter files and actions" or "Press a key, or / to filter"
-  local top, mid, bot = composer_box(content_w, view.query or "", base, placeholder)
-  push(top)
-  local composer_row = #span_lines + 1
-  push(mid)
-  push(bot)
-  if chrome_status then
-    span_lines[#span_lines + 1] = shortcut_bar(width, base, view.branch)
-  end
-
   while #span_lines < height do
     span_lines[#span_lines + 1] = {}
   end
@@ -791,7 +613,6 @@ function M.layout(view)
 
   return {
     span_lines = span_lines,
-    composer_row = math.min(composer_row, #span_lines),
     items = items,
     selected = selected,
     logo = logo,
@@ -902,14 +723,12 @@ local function view_of()
     width = vim.api.nvim_win_get_width(state.win),
     height = vim.api.nvim_win_get_height(state.win),
     tick = state.tick,
-    query = state.query,
     selected = state.selected,
     cwd = vim.fn.getcwd(),
     branch = state.branch,
     version = version_label(),
     startup_ms = state.startup_ms,
     recents = state.recents or {},
-    filtering = state.filtering,
   }
 end
 
@@ -933,14 +752,10 @@ local function apply_layout(laid, logo_only)
 
   local texts = {}
   local ranges = {}
-  local cursor_byte = 0
   for i, spans in ipairs(laid.span_lines) do
-    local text, line_ranges, cur = flatten(spans)
+    local text, line_ranges = flatten(spans)
     texts[i] = text
     ranges[i] = line_ranges
-    if i == laid.composer_row and cur then
-      cursor_byte = cur
-    end
   end
 
   local orbit_start, orbit_end, orbit_n = nil, nil, 0
@@ -983,17 +798,8 @@ local function apply_layout(laid, logo_only)
   end
 
   state.laid = laid
-  state.composer_row = laid.composer_row
-  state.composer_col = cursor_byte
   state.items = laid.items
   state.selected = laid.selected
-  state.key_to_index = {}
-  for index, item in ipairs(laid.items) do
-    if item.key and item.key ~= "" then
-      state.key_to_index[item.key] = index
-    end
-  end
-
   if not logo_only then
     place_cursor()
   end
@@ -1049,12 +855,25 @@ place_cursor = function()
   if not state.win or not vim.api.nvim_win_is_valid(state.win) then
     return
   end
+  local item = state.items and state.items[state.selected]
+  if not item then
+    return
+  end
   state.placing = true
-  pcall(vim.api.nvim_win_set_cursor, state.win, { state.composer_row or 1, state.composer_col or 0 })
+  pcall(vim.api.nvim_win_set_cursor, state.win, { item.line, item.col })
+  state.cursor_line = item.line
   if vim.api.nvim_get_current_win() == state.win then
     pcall(vim.fn.winrestview, { topline = 1, leftcol = 0 })
   end
   state.placing = false
+end
+
+--- Re-render rows after the selection moved. Skips the recents scan and the clip.
+refresh = function()
+  if not state.open or not state.win or not vim.api.nvim_win_is_valid(state.win) then
+    return
+  end
+  apply_layout(M.layout(view_of()), false)
 end
 
 local function hide_chrome()
@@ -1145,19 +964,6 @@ local function close()
   state.laid = nil
 end
 
-local function help()
-  vim.notify(
-    table.concat({
-      "f files     g text      r recent     e sidebar",
-      "n new       c config    q quit       1-9 open",
-      "/ filter    enter opens the row      esc clears",
-      "↑↓ or ctrl-p/n move",
-    }, "\n"),
-    vim.log.levels.INFO,
-    { title = "Home" }
-  )
-end
-
 local function pick(cmd, opts)
   local ok, err = pcall(function()
     Snacks.dashboard.pick(cmd, opts)
@@ -1201,200 +1007,63 @@ local actions = {
   edit = function(item)
     vim.cmd { cmd = "edit", args = { item.path } }
   end,
-  search = function(item)
-    local text = vim.trim((item and item.path) or state.query or "")
-    if text == "" then
-      pick "files"
-    else
-      pick("files", { pattern = text })
-    end
-  end,
 }
 
 activate = function()
   local item = state.items and state.items[state.selected]
-  if not item then
-    if vim.trim(state.query) ~= "" then
-      actions.search { path = vim.trim(state.query) }
-    end
-    return
-  end
-  local fn = actions[item.id]
+  local fn = item and actions[item.id]
   if fn then
     fn(item)
   end
 end
 
-local function move(delta)
-  local count = state.items and #state.items or 0
-  if count == 0 then
-    return
-  end
-  state.selected = math.max(1, math.min(count, state.selected + delta))
-  render_full()
-end
-
-local function backspace()
-  if state.query == "" then
-    if state.filtering then
-      state.filtering = false
-      render_full()
+local function item_at(line)
+  for index, item in ipairs(state.items or {}) do
+    if item.line == line then
+      return index
     end
-    return
   end
-  local chars = chars_of(state.query)
-  table.remove(chars)
-  state.query = table.concat(chars)
-  state.selected = 1
-  render_full()
 end
 
-local function clear_query()
-  if state.query == "" and not state.filtering then
+--- Keep the cursor on a row: j/k, gg/G and clicks all land on the nearest row in the travel direction.
+local function snap_to_row()
+  local items = state.items
+  if not items or #items == 0 then
     return
   end
-  state.query = ""
-  state.filtering = false
-  state.selected = 1
-  render_full()
-end
-
-local function kill_word()
-  if state.query == "" then
-    return
+  local line = vim.api.nvim_win_get_cursor(state.win)[1]
+  local index = item_at(line)
+  if not index then
+    local down = line > (state.cursor_line or line)
+    if down then
+      for i, item in ipairs(items) do
+        if item.line > line then
+          index = i
+          break
+        end
+      end
+      index = index or #items
+    else
+      for i = #items, 1, -1 do
+        if items[i].line < line then
+          index = i
+          break
+        end
+      end
+      index = index or 1
+    end
   end
-  state.query = state.query:gsub("%s*%S+$", "")
-  state.selected = 1
-  render_full()
-end
-
-local function on_char(ch)
-  local idle = state.query == "" and not state.filtering
-  if idle and ch == "?" then
-    help()
-    return
+  if index ~= state.selected or not item_at(line) then
+    state.selected = index
+    refresh()
   end
-  if idle and ch == "/" then
-    state.filtering = true
-    render_full()
-    return
-  end
-  if idle and state.key_to_index and state.key_to_index[ch] then
-    state.selected = state.key_to_index[ch]
-    activate()
-    return
-  end
-  state.filtering = true
-  state.query = state.query .. ch
-  state.selected = 1
-  render_full()
+  state.cursor_line = items[state.selected].line
 end
 
 local function buffer_maps(buf)
-  local opts = { buffer = buf, nowait = true, silent = true }
+  local opts = { buffer = buf, silent = true }
   vim.keymap.set("n", "<CR>", activate, opts)
-  vim.keymap.set("n", "<Up>", function()
-    move(-1)
-  end, opts)
-  vim.keymap.set("n", "<Down>", function()
-    move(1)
-  end, opts)
-  vim.keymap.set("n", "<C-p>", function()
-    move(-1)
-  end, opts)
-  vim.keymap.set("n", "<C-n>", function()
-    move(1)
-  end, opts)
-  vim.keymap.set("n", "<C-k>", function()
-    move(-1)
-  end, opts)
-  vim.keymap.set("n", "<C-j>", function()
-    move(1)
-  end, opts)
-  vim.keymap.set("n", "<Tab>", function()
-    move(1)
-  end, opts)
-  vim.keymap.set("n", "<S-Tab>", function()
-    move(-1)
-  end, opts)
-  vim.keymap.set("n", "<BS>", backspace, opts)
-  vim.keymap.set("n", "<C-h>", backspace, opts)
-  vim.keymap.set("n", "<Left>", backspace, opts)
-  vim.keymap.set("n", "<C-u>", clear_query, opts)
-  vim.keymap.set("n", "<C-w>", kill_word, opts)
-  vim.keymap.set("n", "<Esc>", clear_query, opts)
-  vim.keymap.set("n", "<C-e>", actions.tree, opts)
-  vim.keymap.set("n", "<C-f>", actions.files, opts)
-  vim.keymap.set("n", "<C-b>", "<Nop>", opts)
-  vim.keymap.set("n", "<C-d>", "<Nop>", opts)
-  vim.keymap.set("n", "<C-y>", "<Nop>", opts)
-
-  local keys = {
-    { map = "!", ch = "!" },
-    { map = '"', ch = '"' },
-    { map = "#", ch = "#" },
-    { map = "$", ch = "$" },
-    { map = "%", ch = "%" },
-    { map = "&", ch = "&" },
-    { map = "'", ch = "'" },
-    { map = "(", ch = "(" },
-    { map = ")", ch = ")" },
-    { map = "*", ch = "*" },
-    { map = "+", ch = "+" },
-    { map = ",", ch = "," },
-    { map = "-", ch = "-" },
-    { map = ".", ch = "." },
-    { map = "/", ch = "/" },
-    { map = ":", ch = ":" },
-    { map = ";", ch = ";" },
-    { map = "<lt>", ch = "<" },
-    { map = "=", ch = "=" },
-    { map = ">", ch = ">" },
-    { map = "?", ch = "?" },
-    { map = "@", ch = "@" },
-    { map = "[", ch = "[" },
-    { map = "\\", ch = "\\" },
-    { map = "]", ch = "]" },
-    { map = "^", ch = "^" },
-    { map = "_", ch = "_" },
-    { map = "`", ch = "`" },
-    { map = "{", ch = "{" },
-    { map = "|", ch = "|" },
-    { map = "}", ch = "}" },
-    { map = "~", ch = "~" },
-  }
-  for byte = string.byte "0", string.byte "9" do
-    local ch = string.char(byte)
-    keys[#keys + 1] = { map = ch, ch = ch }
-  end
-  for byte = string.byte "a", string.byte "z" do
-    local ch = string.char(byte)
-    keys[#keys + 1] = { map = ch, ch = ch }
-  end
-  for byte = string.byte "A", string.byte "Z" do
-    local ch = string.char(byte)
-    keys[#keys + 1] = { map = ch, ch = ch }
-  end
-  for _, key in ipairs(keys) do
-    vim.keymap.set("n", key.map, function()
-      on_char(key.ch)
-    end, opts)
-  end
-
-  vim.keymap.set("n", "<LeftMouse>", function()
-    local pos = vim.fn.getmousepos()
-    local line = pos.line
-    if state.items then
-      for index, item in ipairs(state.items) do
-        if item.line == line then
-          state.selected = index
-          activate()
-          return
-        end
-      end
-    end
-    place_cursor()
-  end, opts)
+  vim.keymap.set("n", "<2-LeftMouse>", activate, opts)
 end
 
 local function window_opts(win)
@@ -1478,9 +1147,8 @@ local function attach(win)
   state.open = true
   state.win = win
   state.buf = buf
-  state.query = ""
-  state.filtering = false
   state.selected = 1
+  state.cursor_line = nil
   state.tick = 0
   state.branch = nil
   state.recents = {}
@@ -1516,10 +1184,7 @@ local function attach(win)
       if state.placing or not state.open then
         return
       end
-      local pos = vim.api.nvim_win_get_cursor(win)
-      if pos[1] ~= state.composer_row or pos[2] ~= state.composer_col then
-        place_cursor()
-      end
+      snap_to_row()
     end,
   })
   vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
@@ -1594,8 +1259,6 @@ function M.open(opts)
   end
 
   if state.open and vim.api.nvim_get_current_buf() == state.buf then
-    state.query = ""
-    state.filtering = false
     state.selected = 1
     render_full()
     return
