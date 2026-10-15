@@ -25,6 +25,7 @@ cp .secrets.zsh.example ~/.secrets.zsh
 - Neovim, Karabiner, **Kanata** (keyboard remapping + Raycast toggle scripts), Aerospace, borders, WezTerm, fastfetch, scripts, Swift formatter config, fish, gh, and related essentials under `.config/` (iTerm2 App Support is excluded — it lives in `~/Library`)
 - **Kitty** — `.config/kitty/kitty.conf` plus macOS appearance themes (`dark-theme.auto.conf`, `light-theme.auto.conf`, `no-preference-theme.auto.conf`; light/no-preference use Solarized Light) and `themes.conf` (Vesper palette reference)
 - `.zshrc`, `.tmux.conf`, `.gitconfig`, `.gitignore_global`
+- **Grok** — `install.sh` and interactive zsh point `~/.local/bin/grok` at `~/code/open-source/grok-build` and set `[cli] backend = "cursor"` in `~/.grok/config.toml`
 
 ## What is excluded
 

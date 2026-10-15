@@ -3,6 +3,7 @@ export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 _zsh_config="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
 [[ -f "$_zsh_config/00-tty.zsh" ]] && source "$_zsh_config/00-tty.zsh"
 [[ -f "$_zsh_config/05-kanata.zsh" ]] && source "$_zsh_config/05-kanata.zsh"
+[[ -f "$_zsh_config/30-grok.zsh" ]] && source "$_zsh_config/30-grok.zsh"
 
 # Powerlevel10k instant prompt (needs a real TTY; skip IDE zsh-env capture)
 if _zsh_terminal_ready && [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then

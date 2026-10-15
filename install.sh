@@ -28,6 +28,10 @@ if [[ -x "$HOME/.config/borders/install-watcher.sh" ]]; then
   "$HOME/.config/borders/install-watcher.sh"
 fi
 
+if [[ -x "$HOME/.config/grok/ensure.sh" ]]; then
+  "$HOME/.config/grok/ensure.sh"
+fi
+
 # Kitty terminal (~/.config/kitty)
 mkdir -p "$HOME/.config/kitty"
 rsync -av --exclude 'kitty/' \
