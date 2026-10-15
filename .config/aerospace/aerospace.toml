@@ -105,7 +105,8 @@ shift-right = 'move right'
 f18 = 'mode main'
 
 #ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Ghostty.app'
-ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Kitty.app'
+# ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Kitty.app'
+ctrl-enter = 'exec-and-forget open -n /Volumes/Macintosh\ HD/Applications/Ghostty.app'
 
 
 space = 'layout floating tiling'

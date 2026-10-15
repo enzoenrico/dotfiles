@@ -1,0 +1,66 @@
+# Ghostty port of the Kitty config. Reload with cmd+shift+,.
+# On macOS, background-opacity and background-blur apply after a full restart.
+
+# --- Fonts (Kitty: GeistMono Nerd Font Mono, 16pt) ---
+font-family = GeistMono Nerd Font Mono
+font-size = 16
+
+# Kitty cursor_blink_interval 0.5. Ghostty has no blink-period setting.
+cursor-style-blink = true
+
+# Kitty scrollback_lines 10000. Ghostty counts bytes at about 12.5 per cell,
+# including blank cells, so width matters. 10000 * 200 * 12.5 = 25000000.
+scrollback-limit = 25000000
+
+# Kitty copy_on_select clipboard.
+copy-on-select = clipboard
+
+# Kitty enable_audio_bell yes. System beep only: no dock bounce, no title marker.
+bell-features = system,no-attention,no-title
+
+# Kitty window_padding_width 4 (points, all sides).
+window-padding-x = 4
+window-padding-y = 4
+
+# Kitty inactive_text_alpha 0.7. Ghostty's default unfocused-split-opacity is
+# already 0.7. It dims the whole split, not only the glyphs.
+# Kitty focus_follows_mouse no matches Ghostty's default.
+
+# Kitty confirm_os_window_close 1. A positive count confirms even at a prompt.
+confirm-close-surface = always
+
+# Kitty hide_window_decorations yes, tab bar on the top edge.
+# macOS tabs cannot be fade or powerline. Kitty sets tab_powerline_style slanted
+# but leaves tab_bar_style at fade, so that slant never draws. Traffic lights
+# are hidden; the integrated tab bar stays at the top and matches the background.
+macos-titlebar-style = hidden
+macos-window-buttons = hidden
+window-show-tab-bar = never
+
+# Kitty background_opacity 0.9, background_blur 32, dynamic_background_opacity yes.
+background-opacity = 0.9
+background-blur = 32
+# Kitty: ctrl+shift+a, then m/l steps by 0.1, 1 is opaque, d resets.
+# Ghostty can only toggle between the configured opacity and fully opaque.
+keybind = ctrl+shift+a>m=toggle_background_opacity
+keybind = ctrl+shift+a>l=toggle_background_opacity
+keybind = ctrl+shift+a>1=toggle_background_opacity
+keybind = ctrl+shift+a>d=toggle_background_opacity
+
+# Kitty close_on_child_death no, plus a shell that respawns on exit.
+command = zsh -lic 'while true; do exec zsh -li; done'
+
+# Kitty macos_option_as_alt no. This layout is Brazilian - Pro, so Ghostty
+# would already leave Option as a character key. Pin it so a US layout does not
+# flip Option into Alt.
+macos-option-as-alt = false
+
+# Ctrl+Enter → Neovim <C-CR>. CSI 13;5 u stays distinct from Enter through tmux.
+# Same bytes as Kitty `map ctrl+enter send_text all \e[13;5u`.
+keybind = ctrl+enter=csi:13;5u
+
+# GrokNight when the OS is dark, GrokDay otherwise. Kitty's no-preference
+# theme is GrokDay too. Split color is active_border_color from each theme.
+# Kitty url_color and the per-tab colors have no macOS Ghostty equivalent.
+# themes/vesper is the unused Vesper palette from Kitty themes.conf.
+theme = light:grokday,dark:groknight

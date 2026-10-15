@@ -47,8 +47,12 @@ table.insert(keys, { key = "]", mods = "SUPER", action = send_modified_key("]", 
 table.insert(keys, { key = "]", mods = "SUPER|SHIFT", action = send_modified_key("]", "SUPER|SHIFT") })
 table.insert(keys, { key = "p", mods = "SUPER", action = send_modified_key("p", "SUPER") })
 table.insert(keys, { key = "p", mods = "SUPER|SHIFT", action = send_modified_key("p", "SUPER|SHIFT") })
--- Option+Enter → Neovim <M-CR> / <M-kEnter> (kitty keyboard protocol is on).
-table.insert(keys, { key = "Enter", mods = "ALT", action = send_modified_key("Enter", "ALT") })
+-- Ctrl+Enter → Neovim <C-CR>. CSI 13;5 u stays distinct from Enter through tmux.
+table.insert(keys, {
+	key = "Enter",
+	mods = "CTRL",
+	action = act.SendString("\x1b[13;5u"),
+})
 
 config.keys = keys
 

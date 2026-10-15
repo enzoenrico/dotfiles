@@ -128,14 +128,14 @@ local function map_call(picker, which, lhs, mode)
 end
 
 local chords = {
-  { which = "list", lhs = "<M-CR>", mode = "n" },
-  { which = "list", lhs = "<M-CR>", mode = "i" },
-  { which = "list", lhs = "<M-kEnter>", mode = "n" },
-  { which = "list", lhs = "<M-kEnter>", mode = "i" },
-  { which = "input", lhs = "<M-CR>", mode = "n" },
-  { which = "input", lhs = "<M-CR>", mode = "i" },
-  { which = "input", lhs = "<M-kEnter>", mode = "n" },
-  { which = "input", lhs = "<M-kEnter>", mode = "i" },
+  { which = "list", lhs = "<C-CR>", mode = "n" },
+  { which = "list", lhs = "<C-CR>", mode = "i" },
+  { which = "list", lhs = "<C-kEnter>", mode = "n" },
+  { which = "list", lhs = "<C-kEnter>", mode = "i" },
+  { which = "input", lhs = "<C-CR>", mode = "n" },
+  { which = "input", lhs = "<C-CR>", mode = "i" },
+  { which = "input", lhs = "<C-kEnter>", mode = "n" },
+  { which = "input", lhs = "<C-kEnter>", mode = "i" },
 }
 
 local function wait_picker(picker)
@@ -257,7 +257,7 @@ local function main()
     if not (item and item.dir and item.file and item.file:find("subdir", 1, true)) then
       error("directory row missing")
     end
-    map_call(explorer, "list", "<M-CR>", "n")
+    map_call(explorer, "list", "<C-CR>", "n")
   end)
   vim.wait(100, function()
     return false
@@ -265,9 +265,9 @@ local function main()
   local dir_after = #editor_wins()
   local dir_same = vim.api.nvim_win_is_valid(editor) and vim.api.nvim_win_get_buf(editor) == editor_buf
   if dir_ok and dir_after == dir_before and dir_same then
-    pass("sidebar", string.format("dir list <M-CR> n editors %d -> %d same=true", dir_before, dir_after))
+    pass("sidebar", string.format("dir list <C-CR> n editors %d -> %d same=true", dir_before, dir_after))
   else
-    fail("sidebar", string.format("dir list <M-CR> n editors %d -> %d same=%s err=%s", dir_before, dir_after, tostring(dir_same), tostring(dir_err)))
+    fail("sidebar", string.format("dir list <C-CR> n editors %d -> %d same=%s err=%s", dir_before, dir_after, tostring(dir_same), tostring(dir_err)))
   end
 
   local enter_before = #editor_wins()
