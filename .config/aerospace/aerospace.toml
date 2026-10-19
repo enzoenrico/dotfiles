@@ -281,7 +281,9 @@ run = [
 # ========================= workspace T =========================
 [[on-window-detected]]
 if.app-id = 'com.mitchellh.ghostty'
-run = ['move-node-to-workspace 􀪏']
+# Hidden window buttons trip AeroSpace's dialog heuristic, which floats the
+# window and makes resize mode a no-op. Force tiling.
+run = ['layout tiling', 'move-node-to-workspace 􀪏']
 
 [[on-window-detected]]
 if.app-id = 'net.kovidgoyal.kitty'

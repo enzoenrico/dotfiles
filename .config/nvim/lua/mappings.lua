@@ -83,6 +83,10 @@ else
   pcall(vim.keymap.del, "n", "<leader>v")
   map("n", "<leader>th", "<C-w>s", { desc = "Horizontal split" })
   map("n", "<leader>tv", "<C-w>v", { desc = "Vertical split" })
+  map("n", "<M-Left>", "<cmd>vertical resize -3<cr>", { desc = "Narrow window" })
+  map("n", "<M-Right>", "<cmd>vertical resize +3<cr>", { desc = "Widen window" })
+  map("n", "<M-Up>", "<cmd>resize +2<cr>", { desc = "Taller window" })
+  map("n", "<M-Down>", "<cmd>resize -2<cr>", { desc = "Shorter window" })
   map("n", "<leader>md", "<cmd>MdRender float<cr>", { desc = "Markdown floating preview" })
 
   local open_file_browser = function()
