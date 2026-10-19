@@ -80,7 +80,13 @@ return {
           explorer = {
             hidden = true,
           },
-          files = { hidden = true },
+          -- hidden lists other dotfiles. Gitignored .env files are merged in by the finder.
+          files = {
+            hidden = true,
+            finder = function(opts, ctx)
+              return require("configs.find_files").finder(opts, ctx)
+            end,
+          },
         },
       },
       quickfile = { enabled = true },

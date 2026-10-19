@@ -28,6 +28,12 @@ return {
       plugins = {
         non_standalone = true,
       },
+      -- Outside the submitted @leet region. The judge already defines Solution.
+      injector = {
+        rust = {
+          before = "struct Solution;",
+        },
+      },
     },
   },
 }

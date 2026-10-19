@@ -55,6 +55,7 @@ return {
         )
         return
       end
+      require("configs.rust").setup()
       vim.lsp.enable "rust_analyzer"
     end,
   },
