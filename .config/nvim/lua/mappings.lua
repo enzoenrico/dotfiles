@@ -83,10 +83,19 @@ else
   pcall(vim.keymap.del, "n", "<leader>v")
   map("n", "<leader>th", "<C-w>s", { desc = "Horizontal split" })
   map("n", "<leader>tv", "<C-w>v", { desc = "Vertical split" })
-  map("n", "<M-Left>", "<cmd>vertical resize -3<cr>", { desc = "Narrow window" })
-  map("n", "<M-Right>", "<cmd>vertical resize +3<cr>", { desc = "Widen window" })
-  map("n", "<M-Up>", "<cmd>resize +2<cr>", { desc = "Taller window" })
-  map("n", "<M-Down>", "<cmd>resize -2<cr>", { desc = "Shorter window" })
+  -- Option+arrow moves the split divider in the arrow's direction, whichever side the cursor is on.
+  local function move_divider(dir)
+    local vertical = dir == "h" or dir == "l"
+    local edge = vertical and "l" or "j"
+    local has_next = vim.fn.winnr(edge) ~= vim.fn.winnr()
+    local grow = (dir == edge) == has_next
+    local step = vertical and 3 or 2
+    vim.cmd((vertical and "vertical " or "") .. "resize " .. (grow and "+" or "-") .. step)
+  end
+  map("n", "<M-Left>", function() move_divider "h" end, { desc = "Move split divider left" })
+  map("n", "<M-Right>", function() move_divider "l" end, { desc = "Move split divider right" })
+  map("n", "<M-Up>", function() move_divider "k" end, { desc = "Move split divider up" })
+  map("n", "<M-Down>", function() move_divider "j" end, { desc = "Move split divider down" })
   map("n", "<leader>md", "<cmd>MdRender float<cr>", { desc = "Markdown floating preview" })
 
   local open_file_browser = function()
