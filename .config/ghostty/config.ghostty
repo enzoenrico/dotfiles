@@ -18,9 +18,11 @@ copy-on-select = clipboard
 # Kitty enable_audio_bell yes. System beep only: no dock bounce, no title marker.
 bell-features = system,no-attention,no-title
 
-# Kitty window_padding_width 4 (points, all sides).
-window-padding-x = 4
-window-padding-y = 4
+# Roomier than Kitty's window_padding_width 4 (points, all sides). Balance
+# spreads the leftover partial-cell space evenly instead of piling it bottom-right.
+window-padding-x = 12
+window-padding-y = 12
+window-padding-balance = true
 
 # Kitty inactive_text_alpha 0.7. Ghostty's default unfocused-split-opacity is
 # already 0.7. It dims the whole split, not only the glyphs.
