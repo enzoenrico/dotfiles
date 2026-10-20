@@ -88,6 +88,11 @@ else
     local vertical = dir == "h" or dir == "l"
     local edge = vertical and "l" or "j"
     local has_next = vim.fn.winnr(edge) ~= vim.fn.winnr()
+    local has_prev = vim.fn.winnr(vertical and "h" or "k") ~= vim.fn.winnr()
+    -- Without a split on this axis, resize steals rows from the cmdline and pushes the statusline up.
+    if not has_next and not has_prev then
+      return
+    end
     local grow = (dir == edge) == has_next
     local step = vertical and 3 or 2
     vim.cmd((vertical and "vertical " or "") .. "resize " .. (grow and "+" or "-") .. step)
