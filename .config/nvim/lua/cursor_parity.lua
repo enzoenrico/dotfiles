@@ -132,7 +132,7 @@ local function install_navigation_maps(bufnr)
     "gi",
     go_to_implementation,
     vim.tbl_extend("force", buffer, {
-      desc = "Go to implementation (LSP with definition fallback)",
+      desc = "Implementations & usages",
     })
   )
   map(
@@ -141,6 +141,14 @@ local function install_navigation_maps(bufnr)
     go_to_implementation,
     vim.tbl_extend("force", buffer, {
       desc = "Go to implementation for selection",
+    })
+  )
+  map(
+    { "n", "x" },
+    "<leader>gi",
+    go_to_implementation,
+    vim.tbl_extend("force", buffer, {
+      desc = "Implementations & usages",
     })
   )
 end

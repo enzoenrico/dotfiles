@@ -1,5 +1,5 @@
 --- Go to implementation: symbol at cursor (or visual selection), then fuzzy picker.
---- gi: LSP implementation/definition first, then ripgrep + treesitter candidates.
+--- gi / <leader>gi: implementations (LSP, treesitter, ripgrep), then usages (LSP references, else ripgrep).
 
 local M = {}
 
@@ -461,6 +461,47 @@ local function collect_project_grep(sym)
   return out
 end
 
+--- Word matches of `sym` across the project, for when the LSP has no reference index.
+local function collect_usage_grep(sym)
+  local args = {
+    "rg",
+    "--vimgrep",
+    "--no-heading",
+    "--word-regexp",
+    "--fixed-strings",
+    "-g",
+    "!.git",
+    "-g",
+    "!node_modules",
+    "--",
+    sym,
+    workspace_root(),
+  }
+  local result = vim.system(args, { text = true, timeout = 3000 }):wait()
+  if result.code ~= 0 or not result.stdout or result.stdout == "" then
+    return {}
+  end
+
+  local out = {}
+  local seen = {}
+  for line in result.stdout:gmatch "[^\n]+" do
+    local file, lnum, col, text = line:match "^(.-):(%d+):(%d+):(.*)$"
+    if file and lnum then
+      add_location(out, seen, {
+        filename = file,
+        lnum = tonumber(lnum),
+        col = tonumber(col) or 1,
+        kind = "grep-ref",
+        preview = text,
+      })
+      if #out >= 500 then
+        break
+      end
+    end
+  end
+  return out
+end
+
 local function preview_line(loc)
   if loc.preview then
     return loc.preview
@@ -623,7 +664,7 @@ local function show_picker(locations, sym, title)
       pos = { loc.lnum, math.max((loc.col or 1) - 1, 0) },
       text = table.concat({ file, loc.kind or "", line }, " "),
       line = line,
-      label = ("[%s]"):format(loc.kind or "?"),
+      label = ("[%s]"):format(loc.role or loc.kind or "?"),
       location = loc,
     }
   end
@@ -633,6 +674,8 @@ local function show_picker(locations, sym, title)
     items = items,
     format = "file",
     preview = "file",
+    -- Keep collection order (implementations before usages) until the user types.
+    sort = { fields = { "score:desc", "idx" } },
     auto_confirm = false,
     confirm = function(picker, item)
       picker:close()
@@ -700,24 +743,6 @@ function M.implementation_locations(sym, opts)
       end
     end
 
-    -- A concrete component/function has no separate implementation: tsserver
-    -- returns only its declaration. In that case, `gi` remains useful by
-    -- navigating to its call sites and JSX usages.
-    if #filter_current_location(all, cur) == 0 then
-      for _, loc in
-        ipairs(
-          collect_lsp_method(
-            "textDocument/references",
-            "lsp-ref",
-            opts.lsp_timeout or 2500,
-            { context = { includeDeclaration = false } }
-          )
-        )
-      do
-        add_location(all, seen, loc)
-      end
-    end
-
     if #filter_current_location(all, cur) == 0 then
       pcall(function()
         for _, loc in ipairs(collect_treesitter(cur.bufnr, sym)) do
@@ -756,6 +781,55 @@ function M.implementation_locations(sym, opts)
   end
 
   return filtered, cur, all
+end
+
+--- Call sites and reads/writes of the symbol at cursor: LSP references, else project grep.
+function M.usage_locations(sym, opts)
+  opts = opts or {}
+  sym = sym or symbol_at_cursor()
+  local cur = cursor_location()
+  local refs = collect_lsp_method(
+    "textDocument/references",
+    "lsp-ref",
+    opts.lsp_timeout or 2500,
+    { context = { includeDeclaration = false } }
+  )
+  if #refs == 0 then
+    refs = collect_usage_grep(sym)
+  end
+
+  local cur_file = vim.api.nvim_buf_get_name(cur.bufnr)
+  local filtered = {}
+  for _, loc in ipairs(refs) do
+    local file = loc.filename or (loc.bufnr and vim.api.nvim_buf_get_name(loc.bufnr)) or ""
+    local start_col = (loc.col or 1) - 1
+    local under_cursor = file == cur_file
+      and loc.lnum == cur.lnum
+      and cur.col >= start_col
+      and cur.col < start_col + #sym
+    if not under_cursor then
+      filtered[#filtered + 1] = loc
+    end
+  end
+  return filtered
+end
+
+--- Implementations first, then usages; one entry per line.
+function M.locations(sym, opts)
+  local implementations, cur, all = M.implementation_locations(sym, opts)
+  local usages = M.usage_locations(sym, opts)
+  local out = {}
+  -- The cursor line is where the user already is, so it never needs an entry.
+  local seen = { [loc_line_key { filename = vim.api.nvim_buf_get_name(cur.bufnr), lnum = cur.lnum }] = true }
+  for _, loc in ipairs(implementations) do
+    loc.role = "impl"
+    add_location(out, seen, loc)
+  end
+  for _, loc in ipairs(usages) do
+    loc.role = "usage"
+    add_location(out, seen, loc)
+  end
+  return out, cur, all
 end
 
 function M.collect_all(sym, opts)
@@ -801,24 +875,13 @@ function M.go()
     return
   end
 
-  local locations, _, all = M.implementation_locations(sym)
+  local locations = M.locations(sym)
   if #locations == 0 then
-    if #all > 0 then
-      vim.notify(("No implementations or usages for %q outside the current location"):format(sym), vim.log.levels.INFO)
-    else
-      vim.notify(("No implementations or usages for %q"):format(sym), vim.log.levels.INFO)
-    end
+    vim.notify(("No implementations or usages for %q"):format(sym), vim.log.levels.INFO)
     return
   end
 
-  local references_only = true
-  for _, loc in ipairs(locations) do
-    if loc.kind ~= "lsp-ref" then
-      references_only = false
-      break
-    end
-  end
-  show_picker(locations, sym, references_only and "Usage" or "Implementation")
+  show_picker(locations, sym, "Implementations & usages")
 end
 
 --- Go to an LSP definition, falling back to Tree-sitter and project declarations.
