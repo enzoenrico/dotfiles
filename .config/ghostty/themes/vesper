@@ -1,0 +1,25 @@
+# Vesper, from Kitty themes.conf. Not selected. Kitty does not include that file.
+# Tab colors, mark colors, and url_color have no Ghostty keys.
+foreground = #FFFFFF
+background = #000000
+selection-foreground = #000000
+selection-background = #ebb58c
+cursor-color = #ebb58c
+cursor-text = #000000
+split-divider-color = #ebb58c
+palette = 0=#000000
+palette = 1=#FF6600
+palette = 2=#ebb58c
+palette = 3=#FFA500
+palette = 4=#ebb58c
+palette = 5=#FF6600
+palette = 6=#FFA500
+palette = 7=#FFFFFF
+palette = 8=#333333
+palette = 9=#ebb58c
+palette = 10=#FFA500
+palette = 11=#FFB733
+palette = 12=#FFA500
+palette = 13=#ebb58c
+palette = 14=#FFB733
+palette = 15=#FFFFFF

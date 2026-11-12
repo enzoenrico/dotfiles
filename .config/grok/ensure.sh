@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# Point `grok` at the local grok-build fork and select the cursor backend.
+# Point `grok` at the local grok-build fork when that binary exists.
+# Otherwise use the installed CLI in ~/.grok/bin. A dangling link in
+# ~/.local/bin makes zsh report "command not found".
 set -euo pipefail
 
 fork="${HOME}/code/open-source/grok-build/target/debug/xai-grok-pager"
+installed="${HOME}/.grok/bin/grok"
 link="${HOME}/.local/bin/grok"
 cfg="${HOME}/.grok/config.toml"
 
+target=""
 if [[ -x "$fork" ]]; then
+  target="$fork"
+elif [[ -x "$installed" ]]; then
+  target="$installed"
+fi
+
+if [[ -n "$target" ]]; then
   mkdir -p "${HOME}/.local/bin"
-  if [[ "$(readlink "$link" 2>/dev/null || true)" != "$fork" ]]; then
-    ln -sfn "$fork" "$link"
+  if [[ "$(readlink "$link" 2>/dev/null || true)" != "$target" ]]; then
+    ln -sfn "$target" "$link"
   fi
+elif [[ -L "$link" ]]; then
+  rm -f "$link"
 fi
 
 # Leave a machine alone until grok or the fork is present.

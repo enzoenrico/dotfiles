@@ -41,6 +41,7 @@ alias ff='nvim $(fzf --preview="bat --color=always {}")'
 alias venv="python3 -m venv .venv && source ./.venv/bin/activate"
 alias lg="lazygit"
 alias rbd="./$HOME/dotfiles/scripts/develop-rebase.sh"
+alias leet="nvim -c :Leet daily"
 
 # Launch the alternative Neovim worktree without touching the default config.
 nvim-web() {
