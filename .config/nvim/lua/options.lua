@@ -14,6 +14,9 @@ vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
     vim.wo.number = true
     vim.wo.relativenumber = true
     vim.wo.signcolumn = "yes"
+    -- home screen sets window-local scrolloff=0; drop it so the global 999 applies
+    vim.opt_local.scrolloff = -1
+    vim.opt_local.sidescrolloff = -1
   end,
 })
 
